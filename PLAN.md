@@ -2,20 +2,20 @@
 
 ## Goals (from requirements Q&A)
 
-| Area     | Decision                                                                         |
-| -------- | -------------------------------------------------------------------------------- |
-| Models   | Enigma I (Army/Luftwaffe), Kriegsmarine M3, M4                                   |
-| Purpose  | Education / museum-style — clarity and explanation first                         |
-| Visuals  | 3D interactive model (WebGL)                                                     |
-| Stack    | React + TypeScript + Vite                                                        |
-| Teaching | Live signal-path visualization; step-by-step / slow-motion mode                  |
-| Fidelity | Double-stepping, ring settings, physical plugboard cabling, rotor swapping in 3D |
-| I/O      | Physical keyboard + lampboard, historical message format, sound effects          |
-| Hosting  | Static site, no backend                                                          |
-| Extras   | Mobile/touch support, accessible 2D (non-WebGL) mode                             |
-| Approach | Test-verified engine first, then the UI in phases                                |
+| Area     | Decision                                                                                                                      |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Models   | Enigma I (Army/Luftwaffe), Kriegsmarine M3, M4                                                                                |
+| Purpose  | Education / museum-style — clarity and explanation first                                                                      |
+| Visuals  | Two first-class views, easy to switch: 3D interactive model (WebGL) and the skeuomorphic 2D machine, with full feature parity |
+| Stack    | React + TypeScript + Vite                                                                                                     |
+| Teaching | Live signal-path visualization; step-by-step / slow-motion mode                                                               |
+| Fidelity | Double-stepping, ring settings, physical plugboard cabling, rotor swapping in 3D                                              |
+| I/O      | Physical keyboard + lampboard, historical message format, sound effects                                                       |
+| Hosting  | Static site, no backend                                                                                                       |
+| Extras   | Mobile/touch support; the 2D view also serves as the accessible, no-WebGL mode                                                |
+| Approach | Test-verified engine first, then the UI in phases                                                                             |
 
-Out of scope for now: commercial, Railway and Abwehr variants, Bombe/cryptanalysis, key-sheet generator, accounts, shareable URLs. The engine design leaves room to add them later.
+Out of scope for now: commercial, Railway and Abwehr variants, Bombe/cryptanalysis, key-sheet generator, accounts, sharing machine settings by URL (only the view is in the URL). The engine design leaves room to add them later.
 
 ---
 
@@ -37,13 +37,27 @@ src/
   ui2d/            Accessible SVG/HTML machine (also the dev harness)
   panels/          Settings, step-mode explainer, message tape
   audio/           Web Audio sample playback (key, rotor step, lamp)
-  app/             Routing between 3D / 2D modes, WebGL detection
+  app/             View switcher (2D ⇄ 3D), URL/preference handling, WebGL detection
 tests/
   engine/          Vitest unit + property tests, historical vectors
   e2e/             Playwright smoke tests
 ```
 
 **Key principle:** the UI never computes any cryptography. Every keypress calls `machine.press(letter)`. That returns a `Trace`: the stepping that happened plus the letter at every stage (keyboard → plugboard → entry wheel → R → M → L → [thin rotor] → reflector → back → plugboard → lamp). The trace drives everything downstream: the lamp, the rotor animation, signal-path drawing, step-mode narration and the 2D view. The 3D view, the 2D view and the explanations therefore can never disagree.
+
+### Two views, one machine
+
+Added after Phase 2. The 2D skeuomorphic machine is a permanent peer of the 3D one, not just a fallback, and switching between them should be effortless.
+
+- **Thin views over shared state.** Both views only render the store and send it actions. Everything about the machine lives in the store, so switching views loses nothing. That includes the configuration, positions, tape, last trace, step-mode cursor, and any rotor or cable the user is mid-way through moving. Only presentation state stays inside a view, such as the 3D camera or the 2D scroll position.
+- **Shared chrome.** The key sheet, message tape, step-mode explainer and audio sit outside the views and are the same in both. A view is the machine itself.
+- **Switching.**
+  - A 2D | 3D segmented control in the header switches views instantly and keeps focus sensibly.
+  - The view is chosen in this order: the `?view=2d` / `?view=3d` URL parameter, then the choice remembered on that device (`localStorage`), then the default of **3D**.
+  - Switching updates the URL (`history.replaceState`) and the remembered choice.
+  - Without WebGL the app opens in 2D with a short notice, and the 3D option is disabled and says why.
+- **Loading.** The 3D view is lazy-loaded (`React.lazy` + dynamic import), so the 2D view never downloads three.js. While 3D loads, the 2D view stays on screen.
+- **Parity is enforced by tests.** The Playwright behaviour suite (typing, lamps, settings, plugboard, step mode, rotor swapping…) runs once per view. 3D controls carry the same accessible names as their 2D counterparts and drive the same store actions. A feature isn't done until it passes in both views.
 
 ### Libraries
 
@@ -126,38 +140,54 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 - 18 Playwright tests (desktop + mobile), including Barbarossa decrypted through the UI and an axe WCAG 2.1 AA scan with zero violations.
 - **Deferred:** WebGL detection and the 2D/3D toggle move to Phase 3, when there's a 3D view to switch to. On phones the keys are about 29px, below the 44px touch-target guideline; that is for Phase 7.
 
-### Phase 3 — 3D machine: static scene + typing
+### Phase 3 — 3D machine: static scene + typing, and view switching
 
+- **View switching first:** the `app/` view switcher, `?view=` handling, remembered preference, WebGL detection with fallback notice, a lazy-loaded 3D bundle, and the header toggle. The existing e2e suite becomes a parity suite parameterised by view.
 - **Asset decision:** either model in Blender and export glTF (most realistic), or build procedurally from three.js primitives (faster). Recommendation: prototype procedurally, then swap in a glTF model once the interactions are settled.
 - Wooden case, keys, lampboard, rotor windows, basic PBR materials, and environment lighting.
 - Key-press animation, lamp glow (emissive plus bloom), and the visible rotor stepping animation that drives the window letters.
 - Camera presets: operator view, top/lid-open view, plugboard view.
+- **Parity:** typing, held-key lamps, rotor positions and plugboard all work in 3D and pass the shared suite. The 2D view gets a small matching touch: animated rotor stepping in the windows.
 
-### Phase 4 — Teaching layer
+### Phase 4 — Teaching layer (both views)
 
-- **Signal-path visualization:** a glowing polyline or tube through the plugboard → ETW → each rotor's contacts → reflector → back. Forward and return legs get different colors. In "x-ray" mode the rotor housings turn semi-transparent to show the internal wiring.
-- **Step mode:** a play/pause/next control walks through the `Trace` stage by stage. A side panel explains each stage, e.g. "Rotor II, position K, ring B: G enters on contact F … exits as T". Animation speed is adjustable.
-- A short explanation of double-stepping, triggered the moment it happens.
+- **Signal-path visualization:**
+  - **3D:** a glowing polyline or tube through the plugboard → ETW → each rotor's contacts → reflector → back. Forward and return legs get different colors. In "x-ray" mode the rotor housings turn semi-transparent to show the internal wiring.
+  - **2D:** an "x-ray" panel that opens from the lid. It shows the plugboard, entry wheel, each rotor (as a column of 26 contacts with its wiring) and the reflector side by side, with the same colored path drawn through them. It's an SVG diagram, readable by screen readers as a list of stages.
+- **Step mode (shared):** a play/pause/next control walks through the `Trace` stage by stage. A side panel explains each stage, e.g. "Rotor II, position K, ring B: G enters on contact F … exits as T". Animation speed is adjustable, and both views highlight the current stage.
+- A short explanation of double-stepping, triggered the moment it happens, in both views.
 
-### Phase 5 — Hands-on mechanics
+### Phase 5 — Hands-on mechanics (both views)
 
-- **Rotor swapping:** open the lid, click or drag a rotor out onto a tray, pick another from the box, drop it into a slot. Model constraints are enforced.
-- **Ring settings:** a rotor held in close-up view lets you turn its alphabet ring relative to the core.
-- **Rotor position:** drag or scroll the thumbwheels.
-- **Plugboard cabling:** drag a cable from socket to socket, with a sagging curve (catenary or bezier) and a pair limit.
-- Every 3D interaction mirrors a 2D-panel control, for accessibility and precision.
+- **Rotor swapping:**
+  - **3D:** open the lid, click or drag a rotor out onto a tray, pick another from the box, drop it into a slot.
+  - **2D:** an opened-lid illustration with the rotor box beside it. Drag or click a rotor between box and slots, with an equivalent keyboard flow.
+  - Model constraints are enforced in both.
+- **Ring settings:**
+  - **3D:** a rotor held in close-up view lets you turn its alphabet ring relative to the core.
+  - **2D:** a close-up rotor dialog with the same interaction.
+- **Rotor position:**
+  - **3D:** drag or scroll the thumbwheels.
+  - **2D:** drag the thumbwheels as well as the existing buttons and keys.
+- **Plugboard cabling:**
+  - **3D:** drag a cable from socket to socket, with a sagging curve (catenary or bezier) and a pair limit.
+  - **2D:** drag-to-connect added alongside the existing click-to-connect.
+- Every interaction keeps a key-sheet control as well, for accessibility and precision.
 
 ### Phase 6 — Historical procedure + audio
 
 - Message format: header line (time, letter count, Grundstellung, encrypted indicator), 5-letter groups, and Kenngruppen for naval traffic.
 - Indicator procedure walkthroughs: pre-1940 doubled indicator, post-1940 Grundstellung method, and the M4 procedure.
-- Web Audio: a sample pool for key down/up, rotor ratchet and lamp click, with volume and mute.
+- Web Audio: a sample pool for key down/up, rotor ratchet and lamp click, with volume and mute. Shared by both views.
+- The message-procedure features live in the shared panels, so they work identically in 2D and 3D.
 
 ### Phase 7 — Mobile, performance, polish, launch
 
 - Touch: tap keys, pinch/orbit the camera, long-press to drag cables. An on-screen keyboard fallback is always available.
-- Performance budget: 60 fps on mid-range phones. Instanced keys and lamps, compressed textures (KTX2), lazy-loaded 3D bundle, and a 2D mode that loads without three.js.
-- Settings persisted to `localStorage` (a convenience only).
+- Performance budget: 60 fps on mid-range phones. Instanced keys and lamps, compressed textures (KTX2). Check the 2D initial bundle stays free of three.js.
+- 2D touch targets: get keys and sockets toward 44px on phones, e.g. a landscape layout or a keyboard-focused mode.
+- Final parity audit: the full e2e suite and axe scan pass in both views.
+- Machine settings persisted to `localStorage` (a convenience only); the view choice is already remembered from Phase 3.
 - Lighthouse and axe audits, then deploy.
 
 ---
