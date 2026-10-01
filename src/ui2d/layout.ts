@@ -15,3 +15,14 @@ export const GRID_HEIGHT = KEY_ROWS.length
 export function slotNames(slots: number): string[] {
   return slots === 4 ? ['Thin', 'Left', 'Middle', 'Right'] : ['Left', 'Middle', 'Right']
 }
+
+/** Plugboard cable colours, assigned in order of the pairs list (shared by 2D and 3D). */
+export const CABLE_COLORS = [
+  '#ef4444',
+  '#3b82f6',
+  '#22c55e',
+  '#eab308',
+  '#a855f7',
+  '#f97316',
+  '#14b8a6',
+]

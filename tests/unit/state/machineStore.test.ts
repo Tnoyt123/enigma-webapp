@@ -115,3 +115,29 @@ describe('toGroups', () => {
     expect(toGroups('')).toBe('')
   })
 })
+
+describe('plugboard cabling', () => {
+  it('starts, completes, cancels and removes cables', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    expect(s().activateSocket('A')).toMatch(/plugged into A/)
+    expect(s().plugSelection).toBe('A')
+    expect(s().activateSocket('V')).toBe('Connected A and V.')
+    expect(s().config.plugboard).toEqual(['AV'])
+    expect(s().plugSelection).toBeNull()
+    expect(s().activateSocket('B')).toMatch(/plugged into B/)
+    expect(s().activateSocket('B')).toBe('Cancelled cable from B.')
+    s().activateSocket('C')
+    expect(s().cancelPlug()).toBe('Cancelled cable from C.')
+    expect(s().cancelPlug()).toBeNull()
+    expect(s().activateSocket('V')).toBe('Unplugged V from A.')
+    expect(s().config.plugboard).toEqual([])
+    expect(s().plugMessage).toBe('Unplugged V from A.')
+  })
+
+  it('with all 13 cables in, every socket is plugged, so activating one unplugs it', () => {
+    const store = createMachineStore()
+    store.getState().setPlugboard('AB CD EF GH IJ KL MN OP QR ST UV WX YZ'.split(' '))
+    expect(store.getState().activateSocket('Q')).toBe('Unplugged Q from R.')
+  })
+})

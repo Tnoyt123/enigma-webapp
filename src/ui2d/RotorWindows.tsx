@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { mod26, toLetter } from '../engine/index.ts'
 import { useMachine } from '../state/machineStore.ts'
 import { slotNames } from './layout.ts'
@@ -36,6 +36,19 @@ function RotorWindow({
   position: number
   onChange: (position: number) => void
 }) {
+  // Remember the previous position (React's "adjust state during render" pattern) to animate the step.
+  const [shown, setShown] = useState({ position, step: 0 })
+  if (shown.position !== position) {
+    const delta = mod26(position - shown.position)
+    setShown({ position, step: delta === 1 ? 1 : delta === 25 ? -1 : 0 })
+  }
+  const stepAnimation =
+    shown.step === 1
+      ? 'motion-safe:animate-[rotor-step-forward_140ms_ease-out]'
+      : shown.step === -1
+        ? 'motion-safe:animate-[rotor-step-back_140ms_ease-out]'
+        : ''
+
   const onKeyDown = (e: KeyboardEvent) => {
     const delta = {
       ArrowUp: 1,
@@ -78,17 +91,17 @@ function RotorWindow({
         aria-valuenow={position + 1}
         aria-valuetext={toLetter(position)}
         onKeyDown={onKeyDown}
-        className="flex w-12 flex-col items-center rounded-md border-2 border-stone-500 bg-stone-100 py-1 font-mono text-stone-900 shadow-inner outline-offset-4 select-none focus-visible:outline-2 focus-visible:outline-amber-300"
+        className="flex w-12 flex-col items-center overflow-hidden rounded-md border-2 border-stone-500 bg-stone-100 py-1 font-mono text-stone-900 shadow-inner outline-offset-4 select-none focus-visible:outline-2 focus-visible:outline-amber-300"
       >
-        <span className="text-xs text-stone-500" aria-hidden="true">
-          {toLetter(position - 1)}
-        </span>
-        <span className="text-2xl font-bold" aria-hidden="true">
-          {toLetter(position)}
-        </span>
-        <span className="text-xs text-stone-500" aria-hidden="true">
-          {toLetter(position + 1)}
-        </span>
+        <div
+          key={position}
+          className={`flex flex-col items-center ${stepAnimation}`}
+          aria-hidden="true"
+        >
+          <span className="text-xs text-stone-500">{toLetter(position - 1)}</span>
+          <span className="text-2xl font-bold">{toLetter(position)}</span>
+          <span className="text-xs text-stone-500">{toLetter(position + 1)}</span>
+        </div>
       </div>
       <button
         type="button"

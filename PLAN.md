@@ -39,8 +39,8 @@ src/
   audio/           Web Audio sample playback (key, rotor step, lamp)
   app/             View switcher (2D ⇄ 3D), URL/preference handling, WebGL detection
 tests/
-  engine/          Vitest unit + property tests, historical vectors
-  e2e/             Playwright smoke tests
+  unit/            Vitest unit + property tests (engine, state, app), historical vectors
+  e2e/             Playwright parity suite (runs per view), view switching, axe
 ```
 
 **Key principle:** the UI never computes any cryptography. Every keypress calls `machine.press(letter)`. That returns a `Trace`: the stepping that happened plus the letter at every stage (keyboard → plugboard → entry wheel → R → M → L → [thin rotor] → reflector → back → plugboard → lamp). The trace drives everything downstream: the lamp, the rotor animation, signal-path drawing, step-mode narration and the 2D view. The 3D view, the 2D view and the explanations therefore can never disagree.
@@ -140,14 +140,30 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 - 18 Playwright tests (desktop + mobile), including Barbarossa decrypted through the UI and an axe WCAG 2.1 AA scan with zero violations.
 - **Deferred:** WebGL detection and the 2D/3D toggle move to Phase 3, when there's a 3D view to switch to. On phones the keys are about 29px, below the 44px touch-target guideline; that is for Phase 7.
 
-### Phase 3 — 3D machine: static scene + typing, and view switching
+### Phase 3 — 3D machine: static scene + typing, and view switching ✅
 
-- **View switching first:** the `app/` view switcher, `?view=` handling, remembered preference, WebGL detection with fallback notice, a lazy-loaded 3D bundle, and the header toggle. The existing e2e suite becomes a parity suite parameterised by view.
-- **Asset decision:** either model in Blender and export glTF (most realistic), or build procedurally from three.js primitives (faster). Recommendation: prototype procedurally, then swap in a glTF model once the interactions are settled.
-- Wooden case, keys, lampboard, rotor windows, basic PBR materials, and environment lighting.
-- Key-press animation, lamp glow (emissive plus bloom), and the visible rotor stepping animation that drives the window letters.
-- Camera presets: operator view, top/lid-open view, plugboard view.
-- **Parity:** typing, held-key lamps, rotor positions and plugboard all work in 3D and pass the shared suite. The 2D view gets a small matching touch: animated rotor stepping in the windows.
+- **View switching:**
+  - Implemented in `src/app/view.ts` (pure, unit-tested) and `src/state/viewStore.ts`.
+  - The header's 2D | 3D control is a pair of native radios. The choice comes from `?view=`, then `localStorage`, then the 3D default.
+  - Without WebGL the app opens in 2D with a dismissible notice, and the 3D option is disabled.
+  - `Machine3D` is lazy-loaded, with the 2D machine as its loading fallback. The 2D entry bundle is still about 79 kB gzipped; the 3D chunk is about 298 kB gzipped.
+- **Shared state:** the half-plugged cable moved from the 2D plugboard into the store, so it survives a view switch.
+- **Asset decision:** procedural for now (`src/scene/`), with letters drawn on canvas textures, so no font or HDR files are downloaded. A glTF model can still replace it later.
+- **The 3D model:**
+  - Wooden case, crinkle deck, QWERTZ keys with chrome rims, and lamp windows that glow with bloom.
+  - Rotors with alphabet rings and knurled thumbwheels, with a brass reading frame, reflector and entry wheel.
+  - A front plugboard with drawn cables and plugs.
+  - Rotors animate the short way round, and keys travel. Motion is disabled when the user prefers reduced motion.
+  - The camera framing adapts to narrow, portrait canvases.
+- **Interaction and parity:**
+  - Pointer users press keys (lamp lit while held), click thumbwheels (Shift-click or right-click turns back), and click sockets. Camera presets: Operator, Rotors, Plugboard.
+  - Keyboard and screen-reader users get the same controls as the 2D view, with the same names and store actions. They're revealed as an overlay while focused.
+  - A `?e2e` hook maps 3D parts to screen points, so the tests drive the real 3D pointer path.
+- **2D:** rotor letters slide when stepping (`motion-safe`).
+- **Tests:**
+  - The parity suite runs every behaviour test in both views on desktop and mobile.
+  - View tests cover the default, the URL taking priority over the remembered choice, state surviving a switch (including a half-plugged cable), 2D never loading the 3D chunk, and the no-WebGL fallback.
+  - 50 Playwright tests in total, with an axe scan clean in both views. CI uses SwiftShader software WebGL.
 
 ### Phase 4 — Teaching layer (both views)
 
@@ -194,7 +210,7 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 
 ## Open decisions (to settle when we reach them)
 
-1. 3D assets: procedural vs. a Blender glTF model (and who models it).
+1. ~~3D assets~~: procedural for now (Phase 3); a Blender glTF model remains an option for later polish.
 2. ~~Styling~~: decided — Tailwind v4.
 3. ~~Hosting~~: decided — GitHub Pages.
 4. Sound sources: record, synthesize, or CC0 samples (licensing).

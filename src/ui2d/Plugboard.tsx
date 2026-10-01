@@ -1,18 +1,14 @@
-import { useState, type KeyboardEvent } from 'react'
-import { useMachine } from '../state/machineStore.ts'
+import type { KeyboardEvent } from 'react'
+import { MAX_CABLES, machineStore, useMachine } from '../state/machineStore.ts'
 import { announce } from './announce.ts'
-import { GRID_HEIGHT, GRID_WIDTH, KEY_ROWS, keyPosition } from './layout.ts'
+import { CABLE_COLORS, GRID_HEIGHT, GRID_WIDTH, KEY_ROWS, keyPosition } from './layout.ts'
 import { useRovingFocus } from './useRovingFocus.ts'
-
-const CABLE_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7', '#f97316', '#14b8a6']
-const MAX_CABLES = 13
 
 /** Steckerbrett: click one socket, then another, to plug a cable between them; click a plugged socket to unplug. */
 export function Plugboard() {
   const pairs = useMachine((s) => s.config.plugboard)
-  const setPlugboard = useMachine((s) => s.setPlugboard)
-  const [selected, setSelected] = useState<string | null>(null)
-  const [message, setMessage] = useState('Select a socket to start a cable.')
+  const selected = useMachine((s) => s.plugSelection)
+  const message = useMachine((s) => s.plugMessage)
   const { itemProps, focus } = useRovingFocus(KEY_ROWS)
 
   const partnerOf = (letter: string) => pairs.find((p) => p.includes(letter))?.replace(letter, '')
@@ -21,35 +17,10 @@ export function Plugboard() {
     return i < 0 ? undefined : CABLE_COLORS[i % CABLE_COLORS.length]
   }
 
-  const tell = (text: string) => {
-    setMessage(text)
-    announce(text)
-  }
-
-  const activate = (letter: string) => {
-    const partner = partnerOf(letter)
-    if (partner) {
-      setPlugboard(pairs.filter((p) => !p.includes(letter)))
-      setSelected(null)
-      tell(`Unplugged ${letter} from ${partner}.`)
-    } else if (selected === null) {
-      if (pairs.length >= MAX_CABLES) return tell(`All ${MAX_CABLES} cables are in use.`)
-      setSelected(letter)
-      tell(`Cable plugged into ${letter}. Select the socket to connect it to.`)
-    } else if (selected === letter) {
-      setSelected(null)
-      tell(`Cancelled cable from ${letter}.`)
-    } else {
-      setPlugboard([...pairs, selected + letter])
-      setSelected(null)
-      tell(`Connected ${selected} and ${letter}.`)
-    }
-  }
-
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && selected) {
-      setSelected(null)
-      tell(`Cancelled cable from ${selected}.`)
+    if (e.key === 'Escape') {
+      const message = machineStore.getState().cancelPlug()
+      if (message) announce(message)
     } else if (/^[a-z]$/i.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // Typing a letter jumps to its socket.
       e.preventDefault()
@@ -108,7 +79,7 @@ export function Plugboard() {
                 }
                 aria-pressed={selected === letter}
                 {...itemProps(letter)}
-                onClick={() => activate(letter)}
+                onClick={() => announce(machineStore.getState().activateSocket(letter))}
                 className="absolute flex size-[9%] min-h-7 min-w-7 -translate-1/2 items-center justify-center rounded-md border-2 border-stone-500 bg-stone-800 font-mono text-xs font-semibold text-stone-100 outline-offset-2 focus-visible:outline-2 focus-visible:outline-amber-300 aria-pressed:border-amber-300 aria-pressed:bg-amber-900 sm:text-sm"
                 style={{
                   left: `${(x / GRID_WIDTH) * 100}%`,

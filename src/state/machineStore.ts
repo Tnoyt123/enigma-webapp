@@ -31,6 +31,10 @@ export interface MachineState {
   /** Lamp lit by the held key. */
   readonly litLamp: string | null
   readonly tape: Tape
+  /** Socket with a cable plugged in at one end only, waiting for its partner. */
+  readonly plugSelection: string | null
+  /** Plain-language status of the plugboard, shown under it and announced. */
+  readonly plugMessage: string
 
   /** The setters return validation problems; an empty list means the change was applied. */
   setModel(model: ModelId): string[]
@@ -40,6 +44,10 @@ export interface MachineState {
   setRing(slot: number, ring: number): string[]
   setPosition(slot: number, position: number): string[]
   setPlugboard(pairs: readonly string[]): string[]
+  /** Click/Enter on a plugboard socket: start, finish, cancel or remove a cable. Returns the new status. */
+  activateSocket(letter: string): string
+  /** Drops a half-plugged cable. Returns the new status, or null if nothing was pending. */
+  cancelPlug(): string | null
 
   /** Presses a key: steps the rotors and lights a lamp. Ignored while another key is held. */
   keyDown(letter: string): Trace | null
@@ -66,6 +74,9 @@ export const INITIAL_CONFIG: MachineConfig = {
 
 const EMPTY_TAPE: Tape = { input: '', output: '', start: null }
 
+export const MAX_CABLES = 13
+const PLUG_PROMPT = 'Select a socket to start a cable.'
+
 export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
   return createStore<MachineState>()((set, get) => {
     /** Applies a new configuration (and optionally positions) if it's valid. */
@@ -88,6 +99,8 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
       heldKey: null,
       litLamp: null,
       tape: EMPTY_TAPE,
+      plugSelection: null,
+      plugMessage: PLUG_PROMPT,
 
       setModel(model) {
         const current = get().config
@@ -133,6 +146,39 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
 
       setPlugboard(pairs) {
         return apply({ ...get().config, plugboard: [...pairs] })
+      },
+
+      activateSocket(letter) {
+        const { config, plugSelection } = get()
+        const pairs = config.plugboard
+        const partner = pairs.find((p) => p.includes(letter))?.replace(letter, '')
+        let message: string
+        if (partner) {
+          apply({ ...config, plugboard: pairs.filter((p) => !p.includes(letter)) })
+          message = `Unplugged ${letter} from ${partner}.`
+          set({ plugSelection: null })
+        } else if (plugSelection === null) {
+          // 13 cables fill all 26 sockets, so an empty socket always has a cable to spare.
+          message = `Cable plugged into ${letter}. Select the socket to connect it to.`
+          set({ plugSelection: letter })
+        } else if (plugSelection === letter) {
+          message = `Cancelled cable from ${letter}.`
+          set({ plugSelection: null })
+        } else {
+          apply({ ...config, plugboard: [...pairs, plugSelection + letter] })
+          message = `Connected ${plugSelection} and ${letter}.`
+          set({ plugSelection: null })
+        }
+        set({ plugMessage: message })
+        return message
+      },
+
+      cancelPlug() {
+        const { plugSelection } = get()
+        if (plugSelection === null) return null
+        const message = `Cancelled cable from ${plugSelection}.`
+        set({ plugSelection: null, plugMessage: message })
+        return message
       },
 
       keyDown(letter) {

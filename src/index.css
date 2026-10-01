@@ -1,1 +1,24 @@
 @import 'tailwindcss';
+
+/* A rotor advancing by one brings the next letter up from below; turning back brings it down. */
+@keyframes rotor-step-forward {
+  from {
+    transform: translateY(33%);
+  }
+}
+@keyframes rotor-step-back {
+  from {
+    transform: translateY(-33%);
+  }
+}
+
+/* Visually hidden until something inside has keyboard focus (the 3D view's accessible controls). */
+.reveal-on-focus:not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
