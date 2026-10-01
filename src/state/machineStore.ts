@@ -83,7 +83,8 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
     const apply = (next: MachineConfig, positions = get().positions): string[] => {
       const problems = validateConfig(next, positions)
       if (problems.length === 0) {
-        set({ config: next, machine: compile(next), positions: [...positions] })
+        // The last trace described the old setup; its drawn path would no longer match.
+        set({ config: next, machine: compile(next), positions: [...positions], lastTrace: null })
       }
       return problems
     }

@@ -58,3 +58,47 @@ export const CAMERA_PRESETS: Record<
   rotors: { label: 'Rotors', position: [0, 6.5, 2.2], target: [0, -0.2, -2.6] },
   plugboard: { label: 'Plugboard', position: [0, 1.2, 19.5], target: [0, -1.9, 6.4] },
 }
+
+const STEP = (Math.PI * 2) / 26
+/** Radius of the ring of 26 contacts on each rotor face. */
+export const CONTACT_RADIUS = 0.68
+
+/** x extents of every part of the rotor stack, so the model and the signal path agree. */
+export function rotorStack(thin: readonly boolean[]) {
+  const xs = rotorSlotsX(thin.length)
+  const slots = xs.map((x, slot) => {
+    const ringWidth = thin[slot] ? ROTOR.ringWidth * 0.7 : ROTOR.ringWidth
+    // The thumbwheel sits on the left of the ring; the current crosses both.
+    return { x, ringWidth, right: x + ringWidth / 2, left: x - ringWidth / 2 - ROTOR.wheelWidth }
+  })
+  const reflectorX = xs[0] - 0.95
+  const entryX = xs.at(-1)! + ROTOR.ringWidth / 2 + 0.45
+  return {
+    slots,
+    reflector: { x: reflectorX, width: 0.3, right: reflectorX + 0.15, inner: reflectorX - 0.05 },
+    entry: { x: entryX, width: 0.4, left: entryX - 0.2, right: entryX + 0.2 },
+  }
+}
+
+/**
+ * World position of machine contact `m` (0 = A) on a rotor-stack face at `x`. Contact A sits
+ * under the reading window and the rest follow round the circle, matching the rotor model.
+ */
+export function contactPoint(x: number, m: number): [number, number, number] {
+  const psi = ROTOR.readingAngle - m * STEP
+  return [x, ROTOR.y + CONTACT_RADIUS * Math.sin(psi), ROTOR.z + CONTACT_RADIUS * Math.cos(psi)]
+}
+
+/**
+ * Rotation about the axle that brings alphabet-ring letter `position` to the reading window.
+ * The ring texture puts letter i at angle (i + ½)·STEP from +z, measured toward −y.
+ */
+export function angleFor(position: number): number {
+  return -(position + 0.5) * STEP - ROTOR.readingAngle
+}
+
+/** Point on a rotor face in the rotor's own (spinning) frame, under alphabet-ring letter ℓ. */
+export function ringPoint(x: number, letter: number): [number, number, number] {
+  const psi = -(letter + 0.5) * STEP
+  return [x, CONTACT_RADIUS * Math.sin(psi), CONTACT_RADIUS * Math.cos(psi)]
+}

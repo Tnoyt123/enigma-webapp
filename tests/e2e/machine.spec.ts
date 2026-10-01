@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import {
   clickSocket,
   openMachine,
+  pathSegments,
   point3d,
   pointerDownOnKey,
   rotor,
@@ -123,8 +124,74 @@ for (const view of VIEWS) {
       if (view === '3d') await point3d(page, 'thumbwheel-3') // the model has a fourth rotor too
     })
 
+    test('x-ray draws the full path of the last key press', async ({ page }) => {
+      await page.getByRole('switch', { name: /X-ray/ }).check()
+      await page.keyboard.press('a')
+      // 11 stages from key to lamp, plus the final hop into the lamp.
+      await expect.poll(() => pathSegments(page, view)).toBe(12)
+      await expect(
+        page.getByRole('list', { name: 'Path of the current' }).getByRole('listitem'),
+      ).toHaveCount(13)
+      await page.getByRole('switch', { name: /X-ray/ }).uncheck()
+      await expect.poll(() => pathSegments(page, view)).toBe(0)
+    })
+
+    test('step by step walks through a key press one stage at a time', async ({ page }) => {
+      await page.getByRole('switch', { name: /X-ray/ }).check()
+      await page.getByRole('switch', { name: /Step by step/ }).check()
+      await page.keyboard.press('a')
+      const position = page.getByTestId('step-position')
+      const current = page.locator('[aria-current="step"]')
+      await expect(position).toHaveText('Step 1 of 13')
+      await expect(current).toContainText('Key A pressed: the rotors step')
+      await expect.poll(() => pathSegments(page, view)).toBe(0)
+
+      await page.getByRole('button', { name: 'Next ▶' }).click()
+      await page.getByRole('button', { name: 'Next ▶' }).click()
+      await expect(position).toHaveText('Step 3 of 13')
+      await expect(current).toContainText('Entry wheel (in)')
+      await expect.poll(() => pathSegments(page, view)).toBe(2)
+
+      await page.getByRole('button', { name: '◀ Previous' }).click()
+      await expect(current).toContainText('Plugboard (in)')
+
+      await page.getByLabel('Speed').selectOption({ label: 'Fast' })
+      await page.getByRole('button', { name: '▶ Play' }).click()
+      await expect(position).toHaveText('Step 13 of 13', { timeout: 10_000 })
+      await expect(current).toContainText('Lamp B lights')
+      await expect.poll(() => pathSegments(page, view)).toBe(12)
+
+      await page.keyboard.press('a') // a new key press starts its walkthrough again
+      await expect(position).toHaveText('Step 1 of 13')
+    })
+
+    test('a double step is explained the moment it happens', async ({ page }) => {
+      for (const [slot, letter] of [
+        ['Middle', 'e'],
+        ['Right', 'w'],
+      ]) {
+        await rotor(page, slot).focus()
+        await page.keyboard.press(letter)
+      }
+      await page.locator('header').click()
+      await page.keyboard.press('a') // AEW → BFX
+      await expect(page.getByTestId('double-step-note')).toContainText(
+        'The middle rotor (II) was showing E, its notch letter',
+      )
+      await expect(rotor(page, 'Middle')).toHaveAttribute('aria-valuetext', 'F')
+      if (view === '2d') {
+        await expect(rotor(page, 'Middle')).toHaveAttribute('data-double-step', 'true')
+      } else {
+        await point3d(page, 'window-glow-double')
+      }
+      await page.keyboard.press('a') // an ordinary press clears it
+      await expect(page.getByTestId('double-step-note')).toHaveCount(0)
+    })
+
     test('has no automatically detectable accessibility violations', async ({ page }) => {
-      await page.keyboard.press('a') // fill the tape and enable its buttons
+      await page.getByRole('switch', { name: /X-ray/ }).check()
+      await page.getByRole('switch', { name: /Step by step/ }).check()
+      await page.keyboard.press('a') // fill the tape, enable its buttons, start a walkthrough
       await clickSocket(page, view, 'A')
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])

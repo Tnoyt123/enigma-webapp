@@ -1,13 +1,16 @@
 import { MODELS } from '../engine/index.ts'
 import { useMachine } from '../state/machineStore.ts'
+import { useTeaching } from '../state/teachingStore.ts'
 import { Keyboard } from './Keyboard.tsx'
 import { Lampboard } from './Lampboard.tsx'
 import { Plugboard } from './Plugboard.tsx'
 import { RotorWindows } from './RotorWindows.tsx'
+import { XrayDiagram } from './XrayDiagram.tsx'
 
 /** The machine seen from the operator's seat: rotor windows, lampboard, keyboard, plugboard. */
 export function Machine2D() {
   const model = useMachine((s) => MODELS[s.config.model].name)
+  const xray = useTeaching((s) => s.xray)
   const panel = 'rounded-xl bg-stone-900 p-2 sm:p-5'
 
   return (
@@ -18,6 +21,14 @@ export function Machine2D() {
       <div className={panel}>
         <RotorWindows />
       </div>
+      {xray && (
+        <div className={panel}>
+          <h2 className="mb-2 text-center text-xs font-semibold tracking-widest text-stone-300 uppercase">
+            X-ray · Inside the machine
+          </h2>
+          <XrayDiagram />
+        </div>
+      )}
       <div className={panel}>
         <h2 className="sr-only">Lampboard</h2>
         <Lampboard />

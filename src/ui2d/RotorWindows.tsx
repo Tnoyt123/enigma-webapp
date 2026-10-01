@@ -8,6 +8,10 @@ export function RotorWindows() {
   const rotors = useMachine((s) => s.config.rotors)
   const positions = useMachine((s) => s.positions)
   const setPosition = useMachine((s) => s.setPosition)
+  // Highlight the middle rotor after a press that double-stepped it.
+  const doubleStepSlot = useMachine((s) =>
+    s.lastTrace?.doubleStep ? s.config.rotors.length - 2 : -1,
+  )
   const names = slotNames(rotors.length)
 
   return (
@@ -18,6 +22,7 @@ export function RotorWindows() {
           label={`${names[slot]} rotor (${rotor})`}
           rotor={rotor}
           position={positions[slot]}
+          doubleStepped={slot === doubleStepSlot}
           onChange={(p) => setPosition(slot, mod26(p))}
         />
       ))}
@@ -29,11 +34,13 @@ function RotorWindow({
   label,
   rotor,
   position,
+  doubleStepped,
   onChange,
 }: {
   label: string
   rotor: string
   position: number
+  doubleStepped: boolean
   onChange: (position: number) => void
 }) {
   // Remember the previous position (React's "adjust state during render" pattern) to animate the step.
@@ -90,8 +97,9 @@ function RotorWindow({
         aria-valuemax={26}
         aria-valuenow={position + 1}
         aria-valuetext={toLetter(position)}
+        data-double-step={doubleStepped || undefined}
         onKeyDown={onKeyDown}
-        className="flex w-12 flex-col items-center overflow-hidden rounded-md border-2 border-stone-500 bg-stone-100 py-1 font-mono text-stone-900 shadow-inner outline-offset-4 select-none focus-visible:outline-2 focus-visible:outline-amber-300"
+        className="flex w-12 flex-col items-center overflow-hidden rounded-md border-2 border-stone-500 data-double-step:border-orange-500 data-double-step:ring-4 data-double-step:ring-orange-500/40 bg-stone-100 py-1 font-mono text-stone-900 shadow-inner outline-offset-4 select-none focus-visible:outline-2 focus-visible:outline-amber-300"
       >
         <div
           key={position}

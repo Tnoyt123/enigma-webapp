@@ -37,7 +37,7 @@ function Key({ letter }: { letter: string }) {
     e.stopPropagation()
     setOrbitEnabled(false)
     const trace = machineStore.getState().keyDown(letter)
-    if (trace) announcePress(trace.input, trace.output, trace.positionsAfter)
+    if (trace) announcePress(trace)
   }
 
   return (

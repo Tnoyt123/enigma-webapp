@@ -165,13 +165,30 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
   - View tests cover the default, the URL taking priority over the remembered choice, state surviving a switch (including a half-plugged cable), 2D never loading the 3D chunk, and the no-WebGL fallback.
   - 50 Playwright tests in total, with an axe scan clean in both views. CI uses SwiftShader software WebGL.
 
-### Phase 4 — Teaching layer (both views)
+### Phase 4 — Teaching layer (both views) ✅
 
-- **Signal-path visualization:**
-  - **3D:** a glowing polyline or tube through the plugboard → ETW → each rotor's contacts → reflector → back. Forward and return legs get different colors. In "x-ray" mode the rotor housings turn semi-transparent to show the internal wiring.
-  - **2D:** an "x-ray" panel that opens from the lid. It shows the plugboard, entry wheel, each rotor (as a column of 26 contacts with its wiring) and the reflector side by side, with the same colored path drawn through them. It's an SVG diagram, readable by screen readers as a list of stages.
-- **Step mode (shared):** a play/pause/next control walks through the `Trace` stage by stage. A side panel explains each stage, e.g. "Rotor II, position K, ring B: G enters on contact F … exits as T". Animation speed is adjustable, and both views highlight the current stage.
-- A short explanation of double-stepping, triggered the moment it happens, in both views.
+- **Explanations** (`src/teaching/explain.ts`, pure and unit-tested):
+  - A key press becomes 13 steps (for three rotors): the stepping, each of the 11 stages, then the lamp. Each step is in plain language with the real letters, e.g. why each rotor stepped, the rotor offset (position − ring), the core contacts, and why the reflector rules out self-encryption.
+  - The double-step text names the rotor, its notch letter and the 16,900 period.
+- **Teaching state** (`src/state/teachingStore.ts`) is shared, so it survives a view switch. It holds the x-ray toggle, step mode, cursor, play/pause and speed. Each new key press restarts the walkthrough. Changing the machine clears the last trace, so a stale path is never drawn.
+- **"How it works" panel** (top of the sidebar, same in both views):
+  - X-ray and step-by-step switches.
+  - Restart / Previous / Play / Next controls, a speed setting, and "Step n of 13".
+  - The numbered list of steps, which is also the screen-reader version of the path. Each step is announced as it is reached.
+  - A double-step callout.
+- **2D x-ray** (`src/ui2d/XrayDiagram.tsx`):
+  - An SVG panel that opens under the rotor windows. It has columns for the reflector, each rotor (its wiring drawn for the current position), the entry wheel, the plugboard and the key/lamp, with one row per contact.
+  - The outward path is amber and the return blue. In step mode the current column is highlighted and a dot marks the head of the path.
+- **3D x-ray** (`src/scene/SignalPath3D.tsx`):
+  - The case, deck and rotors turn translucent, and each rotor shows its 26 internal wires, turning with it.
+  - The glowing path runs key → plugboard socket (and cable) → entry wheel → rotor contacts → reflector → back → lamp, revealed stage by stage with a moving spark.
+  - An X-ray button sits next to the camera presets.
+  - A property test proves every internal wire end lands on the contact the path uses.
+- **Double step in the views:** the 2D middle rotor window gets an orange ring, and the 3D middle window frame glows orange.
+- **Fixes found along the way:**
+  - Machine keys stopped working while a switch or radio had focus; only text fields now take letter keys.
+  - Scrollable regions (step list, tape, x-ray diagram) are now keyboard-focusable, as axe requires.
+- **Tests:** 114 unit tests and 62 Playwright tests. New parity tests cover the x-ray path, the step walkthrough (Next / Previous / Play to the lamp, restarting on a new press) and the double-step callout in both views. The axe scan runs with x-ray and step mode on.
 
 ### Phase 5 — Hands-on mechanics (both views)
 

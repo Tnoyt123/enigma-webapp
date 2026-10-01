@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { ViewSwitch } from './app/ViewSwitch.tsx'
 import { KeySheet } from './panels/KeySheet.tsx'
 import { MessageTape } from './panels/MessageTape.tsx'
+import { SignalPanel } from './panels/SignalPanel.tsx'
 import { useView } from './state/viewStore.ts'
 import { LiveAnnouncer } from './ui2d/LiveAnnouncer.tsx'
 import { Machine2D } from './ui2d/Machine2D.tsx'
@@ -48,6 +49,7 @@ export default function App() {
           <Machine2D />
         )}
         <div className="flex flex-col gap-6">
+          <SignalPanel />
           <KeySheet />
           <MessageTape />
         </div>

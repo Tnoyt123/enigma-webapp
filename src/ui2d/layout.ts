@@ -11,10 +11,7 @@ export function keyPosition(letter: string): { x: number; y: number } {
 export const GRID_WIDTH = KEY_ROWS[0].length
 export const GRID_HEIGHT = KEY_ROWS.length
 
-/** Slot names, left to right, for 3- and 4-rotor machines. */
-export function slotNames(slots: number): string[] {
-  return slots === 4 ? ['Thin', 'Left', 'Middle', 'Right'] : ['Left', 'Middle', 'Right']
-}
+export { slotNames } from '../teaching/explain.ts'
 
 /** Plugboard cable colours, assigned in order of the pairs list (shared by 2D and 3D). */
 export const CABLE_COLORS = [

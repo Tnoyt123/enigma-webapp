@@ -1,11 +1,16 @@
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import { Box3, Vector3 } from 'three'
+import { pathInfo } from './xray.ts'
 
 declare global {
   interface Window {
     /** Present only with ?e2e in the URL: lets browser tests find 3D parts on screen. */
-    __enigma3d?: { screenPoint(name: string): { x: number; y: number } | null }
+    __enigma3d?: {
+      screenPoint(name: string): { x: number; y: number } | null
+      /** Segments of the signal path currently drawn, and the step-mode focus. */
+      signalPath(): { segments: number; focus: string | null }
+    }
   }
 }
 
@@ -26,6 +31,7 @@ export function E2EHooks() {
           y: rect.top + ((1 - centre.y) / 2) * rect.height,
         }
       },
+      signalPath: () => ({ ...pathInfo }),
     }
     return () => {
       delete window.__enigma3d

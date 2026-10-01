@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { useEffect, useState } from 'react'
 import { MODELS } from '../engine/index.ts'
 import { useMachine } from '../state/machineStore.ts'
+import { teachingStore, useTeaching } from '../state/teachingStore.ts'
 import { Keyboard } from '../ui2d/Keyboard.tsx'
 import { Lampboard } from '../ui2d/Lampboard.tsx'
 import { Plugboard } from '../ui2d/Plugboard.tsx'
@@ -17,6 +18,7 @@ import { Scene } from './Scene.tsx'
 export default function Machine3D() {
   const model = useMachine((s) => MODELS[s.config.model].name)
   const [preset, setPreset] = useState<CameraPreset>('operator')
+  const xray = useTeaching((s) => s.xray)
 
   // A key pressed on the model is released wherever the pointer is let go.
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function Machine3D() {
 
       <div
         role="group"
-        aria-label="Camera"
+        aria-label="Camera and x-ray"
         className="absolute top-3 left-3 flex gap-1 rounded-lg bg-stone-900/85 p-1"
       >
         {(Object.keys(CAMERA_PRESETS) as CameraPreset[]).map((id) => (
@@ -68,6 +70,15 @@ export default function Machine3D() {
             {CAMERA_PRESETS[id].label}
           </button>
         ))}
+        <span aria-hidden="true" className="mx-1 w-px bg-stone-600" />
+        <button
+          type="button"
+          aria-pressed={xray}
+          onClick={() => teachingStore.getState().setXray(!xray)}
+          className="rounded px-2.5 py-1 text-sm text-stone-200 hover:bg-stone-700 focus-visible:outline-2 focus-visible:outline-amber-300 aria-pressed:bg-sky-300 aria-pressed:text-stone-900"
+        >
+          X-ray
+        </button>
       </div>
       <p className="pointer-events-none absolute right-3 bottom-3 hidden rounded bg-stone-900/80 px-2 py-1 text-xs text-stone-300 sm:block">
         Click a thumbwheel to turn it forward; Shift-click or right-click to turn it back.

@@ -12,7 +12,7 @@ export function Keyboard() {
 
   const press = (letter: string) => {
     const trace = keyDown(letter)
-    if (trace) announcePress(trace.input, trace.output, trace.positionsAfter)
+    if (trace) announcePress(trace)
   }
 
   return (

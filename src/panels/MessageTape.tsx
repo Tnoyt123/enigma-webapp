@@ -42,13 +42,21 @@ export function MessageTape() {
       <dl className="mt-2 flex flex-col gap-2 font-mono text-sm">
         <div>
           <dt className="font-sans font-semibold">Typed</dt>
-          <dd data-testid="tape-input" className="max-h-24 overflow-y-auto break-words">
+          <dd
+            data-testid="tape-input"
+            tabIndex={0}
+            className="max-h-24 overflow-y-auto break-words focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600"
+          >
             {toGroups(tape.input) || <span className="font-sans text-stone-600">Nothing yet.</span>}
           </dd>
         </div>
         <div>
           <dt className="font-sans font-semibold">Lit</dt>
-          <dd data-testid="tape-output" className="max-h-24 overflow-y-auto break-words">
+          <dd
+            data-testid="tape-output"
+            tabIndex={0}
+            className="max-h-24 overflow-y-auto break-words focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600"
+          >
             {toGroups(tape.output) || (
               <span className="font-sans text-stone-600">Nothing yet.</span>
             )}

@@ -7,6 +7,7 @@ import { Keys3D } from './Keys3D.tsx'
 import { Lamps3D } from './Lamps3D.tsx'
 import { Plugboard3D } from './Plugboard3D.tsx'
 import { Rotors3D } from './Rotors3D.tsx'
+import { SignalPath3D } from './SignalPath3D.tsx'
 
 export function Scene() {
   return (
@@ -31,6 +32,7 @@ export function Scene() {
       <Lamps3D />
       <Keys3D />
       <Plugboard3D />
+      <SignalPath3D />
 
       <CameraControls
         ref={registerControls}

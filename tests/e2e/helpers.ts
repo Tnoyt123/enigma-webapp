@@ -48,3 +48,10 @@ export async function clickSocket(page: Page, view: View, letter: string) {
     await page.mouse.click(x, y)
   }
 }
+
+/** Number of signal-path segments the view is currently drawing. */
+export async function pathSegments(page: Page, view: View): Promise<number> {
+  return view === '2d'
+    ? page.locator('[data-path-segment]').count()
+    : page.evaluate(() => window.__enigma3d?.signalPath().segments ?? -1)
+}
