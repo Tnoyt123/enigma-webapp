@@ -1,7 +1,6 @@
 import { Line } from '@react-three/drei'
-import { useFrame } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
-import { Color, type Mesh } from 'three'
+import { useEffect, useMemo } from 'react'
+import { Color } from 'three'
 import { ROTORS, toIndex, type MachineConfig, type Trace } from '../engine/index.ts'
 import { useMachine } from '../state/machineStore.ts'
 import { useTeaching } from '../state/teachingStore.ts'
@@ -123,14 +122,11 @@ export function SignalPath3D() {
   )
 }
 
+/** Bright dot at the head of the path in step mode (static: a pulse would force constant redraws). */
 function Spark({ position }: { position: Point }) {
-  const mesh = useRef<Mesh>(null)
-  useFrame(({ clock }) => {
-    mesh.current?.scale.setScalar(1 + 0.35 * Math.sin(clock.elapsedTime * 6))
-  })
   return (
-    <mesh ref={mesh} position={position} renderOrder={11}>
-      <sphereGeometry args={[0.09, 16, 16]} />
+    <mesh position={position} renderOrder={11}>
+      <sphereGeometry args={[0.1, 16, 16]} />
       <meshBasicMaterial color={[4, 4, 4]} depthTest={false} toneMapped={false} />
     </mesh>
   )

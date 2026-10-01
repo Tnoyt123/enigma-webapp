@@ -1,5 +1,5 @@
 import { useCursor } from '@react-three/drei'
-import { useFrame, type ThreeEvent } from '@react-three/fiber'
+import type { ThreeEvent } from '@react-three/fiber'
 import { useMemo, useRef, useState } from 'react'
 import { BufferGeometry, Float32BufferAttribute, type Group } from 'three'
 import { mod26, ROTORS, toIndex, type RotorId } from '../engine/index.ts'
@@ -7,7 +7,7 @@ import { machineStore, useMachine } from '../state/machineStore.ts'
 import { useTeaching } from '../state/teachingStore.ts'
 import { reveal } from '../teaching/explain.ts'
 import { angleFor, ROTOR, ringPoint, rotorStack } from './layout3d.ts'
-import { damp, shortestAngle } from './motion.ts'
+import { settle, shortestAngle, useSettlingFrame } from './motion.ts'
 import { xrayProps } from './xray.ts'
 import { alphabetRingTexture, knurlTexture } from './textures.ts'
 
@@ -108,11 +108,16 @@ function Rotor({
     return new BufferGeometry().setAttribute('position', new Float32BufferAttribute(points, 3))
   }, [rotor, ring, ringWidth, left])
 
-  useFrame((_, dt) => {
-    const target = angle.current + shortestAngle(angleFor(position) - angle.current)
-    angle.current = damp(angle.current, target, 18, dt)
-    if (spin.current) spin.current.rotation.x = angle.current
-  })
+  useSettlingFrame(
+    (dt) => {
+      const target = angle.current + shortestAngle(angleFor(position) - angle.current)
+      const { value, moving } = settle(angle.current, target, 18, dt, 1e-4)
+      angle.current = value
+      if (spin.current) spin.current.rotation.x = value
+      return moving
+    },
+    [position],
+  )
 
   const turn = (delta: number) =>
     machineStore

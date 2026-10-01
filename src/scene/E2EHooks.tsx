@@ -10,6 +10,8 @@ declare global {
       screenPoint(name: string): { x: number; y: number } | null
       /** Segments of the signal path currently drawn, and the step-mode focus. */
       signalPath(): { segments: number; focus: string | null }
+      /** Frames rendered so far (the canvas renders on demand, so this stops rising when idle). */
+      frames(): number
     }
   }
 }
@@ -32,6 +34,7 @@ export function E2EHooks() {
         }
       },
       signalPath: () => ({ ...pathInfo }),
+      frames: () => gl.info.render.frame,
     }
     return () => {
       delete window.__enigma3d

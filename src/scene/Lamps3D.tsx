@@ -1,10 +1,9 @@
-import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import { Color, type MeshStandardMaterial } from 'three'
 import { useMachine } from '../state/machineStore.ts'
 import { KEY_ROWS } from '../ui2d/layout.ts'
 import { lampAt } from './layout3d.ts'
-import { damp } from './motion.ts'
+import { settle, useSettlingFrame } from './motion.ts'
 import { letterTexture } from './textures.ts'
 
 const LETTERS = KEY_ROWS.join('')
@@ -25,16 +24,21 @@ function Lamp({ letter }: { letter: string }) {
   const lit = useMachine((s) => s.litLamp === letter)
   const material = useRef<MeshStandardMaterial>(null)
 
-  useFrame((_, dt) => {
-    if (material.current) {
-      material.current.emissiveIntensity = damp(
+  useSettlingFrame(
+    (dt) => {
+      if (!material.current) return false
+      const { value, moving } = settle(
         material.current.emissiveIntensity,
         lit ? 5 : 0,
         30,
         dt,
+        0.01,
       )
-    }
-  })
+      material.current.emissiveIntensity = value
+      return moving
+    },
+    [lit],
+  )
 
   return (
     <group position={lampAt(letter)}>

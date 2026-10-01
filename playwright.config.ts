@@ -5,6 +5,8 @@ const PORT = 4173
 export default defineConfig({
   testDir: 'tests/e2e',
   forbidOnly: !!process.env.CI,
+  // CI machines draw the 3D view in software (SwiftShader), several times slower than a GPU.
+  timeout: process.env.CI ? 60_000 : 30_000,
   retries: process.env.CI ? 2 : 0,
   // On CI, also write the HTML report so a failed run uploads it as an artifact.
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',

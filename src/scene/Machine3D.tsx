@@ -46,7 +46,10 @@ export default function Machine3D() {
         className="h-[min(72vh,44rem,115vw)] min-h-[18rem] touch-none"
       >
         <Canvas
-          dpr={[1, 2]}
+          // Draw only when something changes: saves battery, and keeps slow (software) GPUs usable.
+          frameloop="demand"
+          // Above 1.5× the extra pixels cost far more than they add.
+          dpr={[1, 1.5]}
           camera={{ fov: 35, position: CAMERA_PRESETS.operator.position }}
           data-testid="machine-3d-canvas"
         >

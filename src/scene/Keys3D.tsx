@@ -1,5 +1,5 @@
 import { useCursor } from '@react-three/drei'
-import { useFrame, type ThreeEvent } from '@react-three/fiber'
+import type { ThreeEvent } from '@react-three/fiber'
 import { useRef, useState } from 'react'
 import type { Group } from 'three'
 import { machineStore, useMachine } from '../state/machineStore.ts'
@@ -7,7 +7,7 @@ import { KEY_ROWS } from '../ui2d/layout.ts'
 import { announcePress } from '../ui2d/usePhysicalKeyboard.ts'
 import { releasePointerKey, setOrbitEnabled } from './controls.ts'
 import { keyAt } from './layout3d.ts'
-import { damp } from './motion.ts'
+import { settle, useSettlingFrame } from './motion.ts'
 import { letterTexture } from './textures.ts'
 
 const LETTERS = KEY_ROWS.join('')
@@ -28,10 +28,15 @@ function Key({ letter }: { letter: string }) {
   const [hovered, setHovered] = useState(false)
   useCursor(hovered)
 
-  useFrame((_, dt) => {
-    if (travel.current)
-      travel.current.position.y = damp(travel.current.position.y, held ? -0.2 : 0, 40, dt)
-  })
+  useSettlingFrame(
+    (dt) => {
+      if (!travel.current) return false
+      const { value, moving } = settle(travel.current.position.y, held ? -0.2 : 0, 40, dt)
+      travel.current.position.y = value
+      return moving
+    },
+    [held],
+  )
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()

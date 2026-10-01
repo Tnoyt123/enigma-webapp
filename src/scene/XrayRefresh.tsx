@@ -11,6 +11,7 @@ import { useTeaching } from '../state/teachingStore.ts'
 export function XrayRefresh() {
   const xray = useTeaching((s) => s.xray)
   const scene = useThree((s) => s.scene)
+  const invalidate = useThree((s) => s.invalidate)
   const first = useRef(true)
 
   useEffect(() => {
@@ -24,7 +25,8 @@ export function XrayRefresh() {
         m.needsUpdate = true
       }
     })
-  }, [xray, scene])
+    invalidate()
+  }, [xray, scene, invalidate])
 
   return null
 }

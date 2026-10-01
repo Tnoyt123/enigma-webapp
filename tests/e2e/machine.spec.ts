@@ -259,6 +259,19 @@ test.describe('3D model', () => {
     expect(Math.abs(switchedOn - mountedOn)).toBeLessThan(20)
   })
 
+  test('renders only while something is moving', async ({ page }) => {
+    const frames = () => page.evaluate(() => window.__enigma3d?.frames() ?? -1)
+    const idleFrames = async () => {
+      await page.waitForTimeout(1500) // let animations settle
+      const before = await frames()
+      await page.waitForTimeout(1000)
+      return (await frames()) - before
+    }
+    expect(await idleFrames()).toBe(0)
+    await page.keyboard.press('a') // key travel, lamp and rotor animate…
+    expect(await idleFrames()).toBe(0) // …then the canvas goes quiet again
+  })
+
   test('camera presets are toggle buttons', async ({ page }) => {
     const rotors = page.getByRole('button', { name: 'Rotors', exact: true })
     await rotors.click()
