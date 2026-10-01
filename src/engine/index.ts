@@ -15,5 +15,6 @@ export {
   type StepResult,
 } from './machine.ts'
 export { parsePlugboard, plugboardMap } from './plugboard.ts'
+export { toGroups } from './procedure.ts'
 export { fromKeySheet, parseRings, type KeySheet } from './settings.ts'
 export type { Stage, Trace } from './trace.ts'

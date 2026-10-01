@@ -117,13 +117,14 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 - 81 tests, 100% line coverage: data integrity, stepping (incl. double step and the 16,900 period), properties, and three historical messages. They are the Barbarossa 1941 message (Enigma I, including its indicator), the Scharnhorst 1943 message (M3, two-notch rotors) and the U-534 1945 message (M4).
 - The tests caught an error in the hand-written UKW-B wiring, which is now corrected and verified by the involution test and all three messages.
 
-### Phase 2 — 2D accessible machine (also the dev harness)
+### Phase 2 — 2D accessible machine (also the dev harness) ✅
 
-- SVG/HTML machine: settings panel, rotor windows, keyboard, lampboard, plugboard.
-- Physical keyboard input, and an `aria-live` region that announces each lamp.
-- Bulk decrypt of a message tape (output in 5-letter groups).
-- WebGL detection that falls back to this mode automatically, plus a manual toggle.
-- **Exit criteria:** fully usable with keyboard only and a screen reader, and passes axe checks.
+- Zustand store (`src/state/machineStore.ts`) wrapping the engine. Setters validate and return problems. Choosing a rotor that's already in use swaps the two, and switching models keeps any settings the new model accepts.
+- 2D machine (`src/ui2d/`): rotor windows (ARIA spinbuttons), lampboard (lit only while a key is held; one key at a time, as on the real machine), QWERTZ keyboard, and a clickable plugboard with drawn cables. Keyboard and plugboard use roving tabindex.
+- Panels (`src/panels/`): a key sheet (model, reflector, rotor order, rings, plugboard text) and a message tape (5-letter groups, copy, reset rotors to the tape start, bulk encipher/decipher).
+- The physical keyboard drives the machine whenever focus isn't in a field. A polite live region announces each press ("A lights B. Rotors A A B.").
+- 18 Playwright tests (desktop + mobile), including Barbarossa decrypted through the UI and an axe WCAG 2.1 AA scan with zero violations.
+- **Deferred:** WebGL detection and the 2D/3D toggle move to Phase 3, when there's a 3D view to switch to. On phones the keys are about 29px, below the 44px touch-target guideline; that is for Phase 7.
 
 ### Phase 3 — 3D machine: static scene + typing
 
