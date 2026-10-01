@@ -165,6 +165,16 @@ for (const view of VIEWS) {
       await expect(position).toHaveText('Step 1 of 13')
     })
 
+    test('the page never scrolls sideways, even with x-ray on', async ({ page }) => {
+      await page.getByRole('switch', { name: /X-ray/ }).check()
+      await page.getByRole('switch', { name: /Step by step/ }).check()
+      await page.keyboard.press('a')
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      )
+      expect(overflow).toBeLessThanOrEqual(0)
+    })
+
     test('a double step is explained the moment it happens', async ({ page }) => {
       for (const [slot, letter] of [
         ['Middle', 'e'],

@@ -6,7 +6,8 @@ export default defineConfig({
   testDir: 'tests/e2e',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  // On CI, also write the HTML report so a failed run uploads it as an artifact.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',

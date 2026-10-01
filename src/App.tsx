@@ -39,7 +39,7 @@ export default function App() {
           </button>
         </div>
       )}
-      <main className="mx-auto grid max-w-6xl gap-6 px-4 pb-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         {view === '3d' ? (
           // While the 3D code downloads, the 2D machine stays usable.
           <Suspense fallback={<Machine2D />}>
