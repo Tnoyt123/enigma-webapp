@@ -68,14 +68,14 @@ function Socket({
         />
       </mesh>
       {/* The two holes of the socket. */}
-      {[-0.12, 0.12].map((dx) => (
+      {[-0.108, 0.108].map((dx) => (
         <mesh key={dx} position={[dx, 0, 0.01]}>
-          <circleGeometry args={[0.07, 16]} />
+          <circleGeometry args={[0.063, 16]} />
           <meshBasicMaterial color="#050505" />
         </mesh>
       ))}
       <mesh position={[0, 0, 0.012]}>
-        <ringGeometry args={[0.3, 0.34, 32]} />
+        <ringGeometry args={[0.27, 0.306, 32]} />
         <meshStandardMaterial
           color={selected ? '#fbbf24' : '#57534e'}
           emissive={selected ? '#fbbf24' : '#000'}
@@ -86,7 +86,7 @@ function Socket({
       </mesh>
       {plugColor && (
         <mesh position={[0, 0, 0.18]} rotation-x={Math.PI / 2}>
-          <cylinderGeometry args={[0.15, 0.17, 0.3, 20]} />
+          <cylinderGeometry args={[0.135, 0.153, 0.3, 20]} />
           <meshStandardMaterial color={plugColor} roughness={0.5} />
         </mesh>
       )}
@@ -125,7 +125,7 @@ function Cable({ from, to, color }: { from: string; to: string; color: string })
 
   return (
     <mesh>
-      <tubeGeometry args={[curve, 48, 0.045, 8, false]} />
+      <tubeGeometry args={[curve, 48, 0.04, 8, false]} />
       <meshStandardMaterial color={color} roughness={0.55} />
     </mesh>
   )
