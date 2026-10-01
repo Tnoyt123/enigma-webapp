@@ -129,7 +129,7 @@ function Rotor({
     <group position={[x, 0, 0]}>
       <group ref={spin}>
         {/* Alphabet ring. */}
-        <mesh rotation-z={-Math.PI / 2}>
+        <mesh name={`ring-${slot}`} rotation-z={-Math.PI / 2}>
           <cylinderGeometry args={[ROTOR.radius, ROTOR.radius, ringWidth, 52, 1, true]} />
           <meshStandardMaterial map={ringTexture} roughness={0.5} {...xrayProps(xray, 0.45)} />
         </mesh>

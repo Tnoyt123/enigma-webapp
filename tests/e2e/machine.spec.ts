@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import {
+  brightnessAround,
   clickSocket,
   openMachine,
   pathSegments,
@@ -227,6 +228,35 @@ test.describe('3D model', () => {
     await page.mouse.click(x, y)
     await page.keyboard.up('Shift')
     await expect(rotor(page, 'Right')).toHaveAttribute('aria-valuetext', 'B')
+  })
+
+  test('x-ray looks the same whether switched on before or after the 3D view loads', async ({
+    page,
+  }) => {
+    const rotorsCamera = async () => {
+      await page.getByRole('button', { name: 'Rotors', exact: true }).click()
+      await page.waitForTimeout(1500) // let the camera settle
+    }
+    // Switched on while the 3D view is showing (materials must be recompiled).
+    await rotorsCamera()
+    await page.getByRole('button', { name: 'X-ray', exact: true }).click()
+    await page.waitForTimeout(500)
+    const switchedOn = await brightnessAround(page, 'ring-1')
+
+    // The 3D view mounted with x-ray already on (materials created see-through).
+    await page
+      .locator('label')
+      .filter({ has: page.getByRole('radio', { name: /^2D/ }) })
+      .click()
+    await page
+      .locator('label')
+      .filter({ has: page.getByRole('radio', { name: /^3D/ }) })
+      .click()
+    await page.waitForFunction(() => window.__enigma3d?.screenPoint('ring-1') != null)
+    await rotorsCamera()
+    const mountedOn = await brightnessAround(page, 'ring-1')
+
+    expect(Math.abs(switchedOn - mountedOn)).toBeLessThan(20)
   })
 
   test('camera presets are toggle buttons', async ({ page }) => {

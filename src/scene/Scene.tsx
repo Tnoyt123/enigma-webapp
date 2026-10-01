@@ -8,6 +8,7 @@ import { Lamps3D } from './Lamps3D.tsx'
 import { Plugboard3D } from './Plugboard3D.tsx'
 import { Rotors3D } from './Rotors3D.tsx'
 import { SignalPath3D } from './SignalPath3D.tsx'
+import { XrayRefresh } from './XrayRefresh.tsx'
 
 export function Scene() {
   return (
@@ -33,6 +34,7 @@ export function Scene() {
       <Keys3D />
       <Plugboard3D />
       <SignalPath3D />
+      <XrayRefresh />
 
       <CameraControls
         ref={registerControls}

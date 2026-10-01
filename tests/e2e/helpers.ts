@@ -55,3 +55,23 @@ export async function pathSegments(page: Page, view: View): Promise<number> {
     ? page.locator('[data-path-segment]').count()
     : page.evaluate(() => window.__enigma3d?.signalPath().segments ?? -1)
 }
+
+/** Mean brightness (0–255) of the screen in a small square around a named 3D part. */
+export async function brightnessAround(page: Page, name: string, size = 24): Promise<number> {
+  const { x, y } = await point3d(page, name)
+  const png = await page.screenshot({
+    clip: { x: x - size / 2, y: y - size / 2, width: size, height: size },
+  })
+  return page.evaluate(async (base64) => {
+    const bitmap = await createImageBitmap(
+      await (await fetch(`data:image/png;base64,${base64}`)).blob(),
+    )
+    const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d')!
+    ctx.drawImage(bitmap, 0, 0)
+    const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+    let sum = 0
+    for (let i = 0; i < data.length; i += 4)
+      sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+    return sum / (data.length / 4)
+  }, png.toString('base64'))
+}
