@@ -2,6 +2,8 @@
 
 An educational, historically accurate simulator of the WWII Enigma I, M3 and M4 cipher machines, with an interactive 3D model, live signal-path visualization and an accessible 2D mode. See [PLAN.md](PLAN.md) for the roadmap.
 
+**Live:** https://tnoyt123.github.io/enigma-webapp/
+
 ## Development
 
 Requires Node 24+ (see `.nvmrc`).
