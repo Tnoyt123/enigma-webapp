@@ -4,11 +4,11 @@ import { keyPosition } from '../ui2d/layout.ts'
  * Scene layout in "key pitch" units (≈ 2.4 cm on the real machine).
  * x: left → right, y: up, z: toward the operator. The top deck is at y = 0.
  */
-export const CASE = { left: -5.6, right: 5.6, back: -5.4, front: 6.4, bottom: -3.4, lip: 0.2 }
+export const CASE = { left: -5.6, right: 5.6, back: -5.4, front: 6.4, bottom: -3.67, lip: 0.2 }
 
 const KEY_ROW_Z = [3.5, 4.4, 5.3]
 const LAMP_ROW_Z = [-0.1, 0.8, 1.7]
-const SOCKET_ROW_Y = [-0.95, -1.8, -2.65]
+const SOCKET_ROW_Y = [-1.1, -2.03, -2.96]
 
 const gridX = (letter: string) => keyPosition(letter).x - 4.5
 const gridRow = (letter: string) => keyPosition(letter).y - 0.5
@@ -56,7 +56,7 @@ export const CAMERA_PRESETS: Record<
 > = {
   operator: { label: 'Operator', position: [0, 11.5, 18.5], target: [0, -0.9, 1.6] },
   rotors: { label: 'Rotors', position: [0, 6.5, 2.2], target: [0, -0.2, -2.6] },
-  plugboard: { label: 'Plugboard', position: [0, 1.2, 19.5], target: [0, -1.9, 6.4] },
+  plugboard: { label: 'Plugboard', position: [0, 1.1, 19.5], target: [0, -2.05, 6.4] },
 }
 
 const STEP = (Math.PI * 2) / 26

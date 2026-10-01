@@ -60,16 +60,17 @@ function Socket({
 
   return (
     <group position={socketAt(letter)}>
-      <mesh position={[0, 0.36, 0.01]}>
+      {/* Letter label, clear of the socket ring and plug below it. */}
+      <mesh position={[0, 0.47, 0.01]}>
         <planeGeometry args={[0.3, 0.3]} />
         <meshStandardMaterial
           map={letterTexture(letter, '#e7e5e4', '#1f1c19', 64)}
           roughness={0.9}
         />
       </mesh>
-      {/* The two holes of the socket. */}
-      {[-0.108, 0.108].map((dx) => (
-        <mesh key={dx} position={[dx, 0, 0.01]}>
+      {/* The two holes of the socket, one above the other as on the real machines. */}
+      {[-0.108, 0.108].map((dy) => (
+        <mesh key={dy} position={[0, dy, 0.01]}>
           <circleGeometry args={[0.063, 16]} />
           <meshBasicMaterial color="#050505" />
         </mesh>

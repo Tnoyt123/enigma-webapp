@@ -43,9 +43,9 @@ export function Case() {
           <meshStandardMaterial color={WOOD} roughness={0.6} {...xrayProps(xray, 0.15)} />
         </mesh>
       ))}
-      {/* Plugboard panel on the front face. */}
-      <mesh position={[cx, -1.8, CASE.front + 0.005]}>
-        <boxGeometry args={[width - 0.7, 2.7, 0.02]} />
+      {/* Plugboard panel on the front face, from just under the lip down to y ≈ −3.42. */}
+      <mesh position={[cx, -1.935, CASE.front + 0.005]}>
+        <boxGeometry args={[width - 0.7, 2.97, 0.02]} />
         <meshStandardMaterial color={CRINKLE} roughness={0.9} {...xrayProps(xray, 0.3)} />
       </mesh>
     </group>
