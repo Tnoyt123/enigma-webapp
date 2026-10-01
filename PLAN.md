@@ -74,7 +74,7 @@ Wirings are the standard published tables. Each is verified by the test vectors 
 | Reflector  | Wiring                     | Models      |
 | ---------- | -------------------------- | ----------- |
 | UKW-A      | EJMZALYXVBWFCRQUONTSPIKHGD | I (pre-war) |
-| UKW-B      | YRUHQLSWDPXNGOKMIEBFZCVJAT | I, M3       |
+| UKW-B      | YRUHQSLDPXNGOKMIEBFZCWVJAT | I, M3       |
 | UKW-C      | FVPJIAOYEDRZXWGCTKUQSBNMHL | I, M3       |
 | UKW-B thin | ENKQAUYWJICOPBLMDXZVFTHRGS | M4          |
 | UKW-C thin | RDOBJNTKVEHMLFCWZAXGYIPSUQ | M4          |
@@ -110,12 +110,12 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 - GitHub Actions: `ci.yml` (lint, format check, typecheck, unit tests with coverage, build, e2e) and `deploy.yml` (GitHub Pages after CI passes on `mainline`).
 - Styling: Tailwind v4.
 
-### Phase 1 — Engine (test-first)
+### Phase 1 — Engine (test-first) ✅
 
-- Data tables, `Rotor`, `Plugboard`, `Reflector`, `Machine`, `Trace`.
+- Data tables, rotor/reflector/plugboard logic, `step()`, `press()` → `Trace`, `EnigmaMachine` wrapper, key-sheet parsing.
 - Model presets with validation errors (e.g. "Rotor VI isn't available on Enigma I").
-- All the tests above.
-- **Exit criteria:** every historical vector decrypts correctly.
+- 81 tests, 100% line coverage: data integrity, stepping (incl. double step and the 16,900 period), properties, and three historical messages. They are the Barbarossa 1941 message (Enigma I, including its indicator), the Scharnhorst 1943 message (M3, two-notch rotors) and the U-534 1945 message (M4).
+- The tests caught an error in the hand-written UKW-B wiring, which is now corrected and verified by the involution test and all three messages.
 
 ### Phase 2 — 2D accessible machine (also the dev harness)
 
