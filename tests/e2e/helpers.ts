@@ -23,6 +23,11 @@ export async function openMachine(page: Page, view: View) {
 
 /** Page coordinates of a named part of the 3D model (e.g. "key-A", "socket-V", "thumbwheel-2"). */
 export async function point3d(page: Page, name: string) {
+  // The canvas renders on demand: let it draw the latest change first, because pointer hit
+  // tests use where objects were last drawn (a part that just appeared isn't hittable until then).
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+  )
   const p = await page.evaluate((n) => window.__enigma3d?.screenPoint(n) ?? null, name)
   if (!p) throw new Error(`3D part ${name} not found`)
   return p
@@ -75,3 +80,53 @@ export async function brightnessAround(page: Page, name: string, size = 24): Pro
     return sum / (data.length / 4)
   }, png.toString('base64'))
 }
+
+/** Page point of a part, in either view: a CSS selector in 2D, a named 3D part in 3D. */
+export async function pointOf(page: Page, view: View, part: { css: string; name3d: string }) {
+  if (view === '3d') return point3d(page, part.name3d)
+  await page.locator(part.css).first().scrollIntoViewIfNeeded()
+  const box = await page.locator(part.css).first().boundingBox()
+  if (!box) throw new Error(`${part.css} not visible`)
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/** Press at `from`, move in small steps to `to`, release: a real pointer drag. */
+export async function drag(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  for (let i = 1; i <= 8; i++) {
+    await page.mouse.move(from.x + ((to.x - from.x) * i) / 8, from.y + ((to.y - from.y) * i) / 8)
+  }
+  await page.mouse.up()
+}
+
+export const rotorSlot = (slot: number) => ({
+  css: `[data-rotor-slot="${slot}"]`,
+  name3d: `rotor-slot-${slot}`,
+})
+export const boxRotor = (rotor: string) => ({
+  css: `button[aria-label^="Rotor ${rotor}, in the box"]`,
+  name3d: `box-rotor-${rotor}`,
+})
+export const socket = (letter: string) => ({
+  css: `[data-socket="${letter}"]`,
+  name3d: `socket-${letter}`,
+})
+export const thumbwheel = (slot: number, slotName: string) => ({
+  css: `[role="spinbutton"][aria-label^="${slotName} rotor"]`,
+  name3d: `thumbwheel-${slot}`,
+})
+
+/** Opens the lid and waits for the camera (3D) to settle on the rotors. */
+export async function openLid(page: Page, view: View) {
+  await page.getByRole('button', { name: 'Open the lid' }).click()
+  if (view === '3d') await page.waitForTimeout(1500)
+}
+
+/** The rotor (I…VIII, Beta, Gamma) the key sheet shows in a slot. */
+export const keySheetRotor = (page: Page, slotName: string) =>
+  page.getByLabel(`${slotName} rotor`, { exact: true })

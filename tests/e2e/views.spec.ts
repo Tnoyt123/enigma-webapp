@@ -84,3 +84,19 @@ test('without WebGL the app falls back to 2D and explains why', async ({ page })
   await expect(viewRadio(page, '3D')).toBeDisabled()
   await expect(page.getByRole('region', { name: /machine$/ })).toBeVisible()
 })
+
+test('a rotor lifted out in one view is still in hand after switching', async ({ page }) => {
+  await openMachine(page, '2d')
+  await page.getByRole('button', { name: 'Open the lid' }).click()
+  await page.getByRole('button', { name: /^Rotor IV, in the box/ }).focus()
+  await page.keyboard.press('Enter')
+
+  await switchTo(page, '3D')
+  await page.waitForFunction(() => window.__enigma3d?.screenPoint('box-rotor-IV') != null)
+  await expect(page.getByTestId('rotor-message')).toHaveText(
+    'Holding rotor IV from the box. Choose a slot to put it in.',
+  )
+  await page.getByRole('button', { name: /^Right slot: rotor III/ }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByLabel('Right rotor', { exact: true })).toHaveValue('IV')
+})

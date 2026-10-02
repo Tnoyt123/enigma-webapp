@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { toGroups } from '../../../src/engine/index.ts'
-import { createMachineStore } from '../../../src/state/machineStore.ts'
+import { boxRotors, createMachineStore } from '../../../src/state/machineStore.ts'
 
 const fresh = () => createMachineStore().getState
 const typeKeys = (store: ReturnType<typeof createMachineStore>, text: string) => {
@@ -49,6 +49,24 @@ describe('machine store', () => {
     const store = createMachineStore()
     expect(store.getState().encipherText('123 !')).toBe('')
     expect(store.getState().tape.start).toBeNull()
+  })
+
+  it('rotors in the box remember their ring settings', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().setRing(1, 4)
+    s().setRotor(1, 'V') // II (ring E) goes to the box, V comes out at ring A
+    expect(s().config.rings).toEqual([0, 0, 0])
+    expect(s().boxRings).toEqual({ II: 4 })
+    s().setRing(1, 9)
+    s().setRotor(2, 'II') // II comes back with ring E; III goes to the box at ring A
+    expect(s().config.rotors).toEqual(['I', 'V', 'II'])
+    expect(s().config.rings).toEqual([0, 9, 4])
+    expect(s().boxRings).toEqual({ III: 0 })
+    s().setRotor(2, 'II') // already there: nothing changes
+    expect(s().config.rings).toEqual([0, 9, 4])
+    s().setModel('M3')
+    expect(s().boxRings).toEqual({}) // a new model starts with fresh rings
   })
 
   it('swaps rotors when one is chosen for a second slot', () => {
@@ -139,5 +157,95 @@ describe('plugboard cabling', () => {
     const store = createMachineStore()
     store.getState().setPlugboard('AB CD EF GH IJ KL MN OP QR ST UV WX YZ'.split(' '))
     expect(store.getState().activateSocket('Q')).toBe('Unplugged Q from R.')
+  })
+})
+
+describe('rotor bay', () => {
+  it('lists the rotors left in the box for each model', () => {
+    const store = createMachineStore()
+    expect(boxRotors(store.getState().config)).toEqual(['IV', 'V'])
+    store.getState().setModel('M4')
+    expect(boxRotors(store.getState().config)).toEqual(['Gamma', 'IV', 'V', 'VI', 'VII', 'VIII'])
+  })
+
+  it('swaps two rotors in the machine; rings go with the rotors, positions stay with the slots', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().setRing(0, 5)
+    s().setPosition(0, 7)
+    expect(s().liftRotor(0)).toBe('Lifted rotor I out of the left slot. Choose where to put it.')
+    expect(s().hand).toEqual({ rotor: 'I', from: 0 })
+    expect(s().placeRotor(2)).toBe(
+      'Rotor I is in the right slot; rotor III moved to the left slot.',
+    )
+    expect(s().config.rotors).toEqual(['III', 'II', 'I'])
+    expect(s().config.rings).toEqual([0, 0, 5]) // rotor I took its ring F with it
+    expect(s().positions).toEqual([7, 0, 0])
+    expect(s().hand).toBeNull()
+  })
+
+  it('replaces a rotor with one from the box', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().liftRotor('box', 'V')
+    expect(s().placeRotor(1)).toBe('Rotor V is in the middle slot; rotor II went back to the box.')
+    expect(s().config.rotors).toEqual(['I', 'V', 'III'])
+    expect(boxRotors(s().config)).toEqual(['II', 'IV'])
+  })
+
+  it('placing with an empty hand lifts that slot’s rotor; placing back where it came from is a no-op', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().placeRotor(1)
+    expect(s().hand).toEqual({ rotor: 'II', from: 1 })
+    expect(s().placeRotor(1)).toBe('Put rotor II back in the middle slot.')
+    expect(s().config.rotors).toEqual(['I', 'II', 'III'])
+  })
+
+  it('refuses rotors the slot cannot take and keeps holding them', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().setModel('M4')
+    s().liftRotor('box', 'Gamma')
+    expect(s().placeRotor(2)).toMatch(/Rotor "Gamma" can't be used in slot 3/)
+    expect(s().hand).toEqual({ rotor: 'Gamma', from: 'box' })
+    expect(s().placeRotor(0)).toBe(
+      'Rotor Gamma is in the thin slot; rotor Beta went back to the box.',
+    )
+  })
+
+  it('blocks the keys while a rotor is out, and returning or closing the lid puts it back', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().setLidOpen(true)
+    s().liftRotor(0)
+    expect(s().keyDown('A')).toBeNull()
+    expect(s().rotorMessage).toMatch(/Put rotor I down before typing/)
+    expect(s().tape.input).toBe('')
+    expect(s().returnRotor()).toBe('Put rotor I back in the left slot.')
+    expect(s().returnRotor()).toBeNull()
+    // Opening the ring close-up puts the rotor in hand back; lifting one closes the close-up.
+    s().liftRotor('box', 'IV')
+    s().setRingSlot(2)
+    expect(s()).toMatchObject({ hand: null, ringSlot: 2 })
+    s().liftRotor('box', 'IV')
+    expect(s()).toMatchObject({ hand: { rotor: 'IV', from: 'box' }, ringSlot: null })
+    expect(s().setLidOpen(false)).toBe('Put rotor IV back and closed the lid.')
+    expect(s()).toMatchObject({ lidOpen: false, hand: null, ringSlot: null })
+    expect(s().keyDown('A')).not.toBeNull()
+  })
+})
+
+describe('pulling a plug', () => {
+  it('leaves the other end plugged in and ready to move', () => {
+    const store = createMachineStore()
+    const s = () => store.getState()
+    s().setPlugboard(['AV'])
+    expect(s().pullPlug('A')).toBe(
+      'Pulled the plug out of A; the cable is still in V. Choose a socket for it.',
+    )
+    expect(s()).toMatchObject({ plugSelection: 'V', config: { plugboard: [] } })
+    expect(s().activateSocket('B')).toBe('Connected V and B.')
+    expect(s().pullPlug('Q')).toBe('Connected V and B.') // not plugged: nothing happens
   })
 })

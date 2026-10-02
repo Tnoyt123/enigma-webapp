@@ -190,22 +190,29 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
   - Scrollable regions (step list, tape, x-ray diagram) are now keyboard-focusable, as axe requires.
 - **Tests:** 114 unit tests and 62 Playwright tests. New parity tests cover the x-ray path, the step walkthrough (Next / Previous / Play to the lamp, restarting on a new press) and the double-step callout in both views. The axe scan runs with x-ray and step mode on.
 
-### Phase 5 — Hands-on mechanics (both views)
+### Phase 5 — Hands-on mechanics (both views) ✅
 
+- **Shared state** (machine store):
+  - The lid, the rotor in hand, the ring close-up, and a status message, all of which survive a view switch.
+  - `liftRotor` / `placeRotor` / `returnRotor`. A rotor dropped on an occupied slot swaps with it, and one from the box replaces it (the old rotor goes back in the box). Ring settings belong to the rotors and travel with them, everywhere including the key sheet's rotor menus: rotors in the box remember their rings (`boxRings`), and the key sheet's ring fields follow automatically. Window positions stay with the slots. Model rules are enforced, so a refused rotor stays in hand with the reason shown.
+  - The keys are dead while a rotor is out ("the circuit is broken").
+  - `pullPlug` pulls one end of a cable out so it can be moved.
 - **Rotor swapping:**
-  - **3D:** open the lid, click or drag a rotor out onto a tray, pick another from the box, drop it into a slot.
-  - **2D:** an opened-lid illustration with the rotor box beside it. Drag or click a rotor between box and slots, with an equivalent keyboard flow.
-  - Model constraints are enforced in both.
+  - **2D:** "Open the lid" shows the slots (with reflector and entry wheel) and the rotor box. Drag and drop, click-to-pick then click-to-place, or keyboard (Enter to pick up and put down, Escape to put back). A ghost rotor follows the pointer.
+  - **3D:** "Open the lid" moves the camera over the rotors and a wooden rotor box beside the machine. Lifted rotors rise out of their slot or the box, with Roman-numeral labels. Dragging carries the rotor under the pointer at lift height (its old spot shows empty), and rotors put down, or swapped back into the box, settle into place. You can also click to pick up, then click to place; a click is never mistaken for a drop. A strip shows the status, the "Set ring" buttons and "Put back". Keyboard users get the slot and box buttons in the revealed controls.
 - **Ring settings:**
-  - **3D:** a rotor held in close-up view lets you turn its alphabet ring relative to the core.
-  - **2D:** a close-up rotor dialog with the same interaction.
-- **Rotor position:**
-  - **3D:** drag or scroll the thumbwheels.
-  - **2D:** drag the thumbwheels as well as the existing buttons and keys.
-- **Plugboard cabling:**
-  - **3D:** drag a cable from socket to socket, with a sagging curve (catenary or bezier) and a pair limit.
-  - **2D:** drag-to-connect added alongside the existing click-to-connect.
-- Every interaction keeps a key-sheet control as well, for accessibility and precision.
+  - Shared `RingControls`: a spinbutton (letter and number), Back / Forward buttons, and an explanation of the ring against the wiring.
+  - **2D:** a modal dialog with a draggable ring dial. The wiring's contact A is the red dot.
+  - **3D:** the rotor is lifted into a close-up. Every rotor now has a red dot on its core face, at wiring contact A, which sits under the ring-setting letter.
+- **Thumbwheels:**
+  - **2D:** drag the rotor window up or down, one letter per 16 px.
+  - **3D:** click, drag (one letter per 14 px) or scroll the wheel. Page scrolling is blocked while the pointer is over a thumbwheel.
+- **Plugboard:** in both views, drag from socket to socket (a loose amber cable follows the pointer), or drag a plug out of its socket to move it. Dropping it away from any socket puts the cable away. Click-to-connect still works.
+- **Tests:** 121 unit and 112 Playwright tests. The new mechanics suite runs in both views on desktop and mobile. It covers:
+  - box→slot drag, click-swap, the keyboard flow, dead keys, and the thin-slot rule;
+  - the ring close-up, thumbwheel drags, and cable drag and pull;
+  - axe with the lid open and the close-up showing;
+  - the 2D ring dial drag, 3D scroll-wheel turning, and a rotor in hand surviving a view switch.
 
 ### Phase 6 — Historical procedure + audio
 

@@ -102,3 +102,27 @@ export function ringPoint(x: number, letter: number): [number, number, number] {
   const psi = -(letter + 0.5) * STEP
   return [x, CONTACT_RADIUS * Math.sin(psi), CONTACT_RADIUS * Math.cos(psi)]
 }
+
+/** How far a rotor rises when lifted out of its slot or the box. */
+export const LIFT = 2.2
+
+/** The open rotor box beside the machine, to the right of the case. */
+export const ROTOR_BOX = { left: 6.4, right: 11.2, y: -0.9, z: ROTOR.z, pitch: 0.78 }
+
+/** x of each spare rotor in the box, left to right. */
+export function boxRotorX(index: number): number {
+  return ROTOR_BOX.left + 0.6 + index * ROTOR_BOX.pitch
+}
+
+/** Camera looking over the open lid at the rotors and the rotor box. */
+export const LID_VIEW = { position: [3.4, 12.5, 9.5], target: [3.4, -0.6, -2.3] } as const
+
+/** Camera for the ring close-up of the rotor at `x`, which is lifted while its ring is set. */
+export function ringCloseUp(x: number) {
+  const y = ROTOR.y + LIFT
+  return {
+    position: [x + 3.4, y + 2.4, ROTOR.z + 4.8] as const,
+    // Aim a little low so the rotor sits above the ring panel at the bottom of the view.
+    target: [x + 0.4, y - 0.9, ROTOR.z] as const,
+  }
+}

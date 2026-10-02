@@ -1,4 +1,5 @@
 import { createStore, useStore } from 'zustand'
+import { slotNames } from '../teaching/explain.ts'
 import {
   compile,
   MODELS,
@@ -35,21 +36,47 @@ export interface MachineState {
   readonly plugSelection: string | null
   /** Plain-language status of the plugboard, shown under it and announced. */
   readonly plugMessage: string
+  /** The machine's lid is open: rotors can be lifted out and swapped with the rotor box. */
+  readonly lidOpen: boolean
+  /** A rotor lifted out of its slot or the box, waiting to be put down. Keys don't work meanwhile. */
+  readonly hand: RotorInHand | null
+  /** Slot whose ring is being set in the close-up, if any. */
+  readonly ringSlot: number | null
+  /** Plain-language status of the rotor bay, shown in it and announced. */
+  readonly rotorMessage: string
+  /** Ring settings of rotors in the box (rings belong to rotors); missing means A. */
+  readonly boxRings: Readonly<Partial<Record<RotorId, number>>>
 
   /** The setters return validation problems; an empty list means the change was applied. */
   setModel(model: ModelId): string[]
   setReflector(reflector: ReflectorId): string[]
-  /** Choosing a rotor that's already in another slot swaps the two. */
+  /**
+   * Puts a rotor in a slot. One already in another slot swaps with it; one from the box replaces
+   * the slot's rotor. Ring settings travel with their rotors; positions stay with the slots.
+   */
   setRotor(slot: number, rotor: RotorId): string[]
   setRing(slot: number, ring: number): string[]
   setPosition(slot: number, position: number): string[]
   setPlugboard(pairs: readonly string[]): string[]
   /** Click/Enter on a plugboard socket: start, finish, cancel or remove a cable. Returns the new status. */
   activateSocket(letter: string): string
+  /** Pulls the plug out of a plugged socket; the cable's other end stays in. Returns the new status. */
+  pullPlug(letter: string): string
   /** Drops a half-plugged cable. Returns the new status, or null if nothing was pending. */
   cancelPlug(): string | null
 
-  /** Presses a key: steps the rotors and lights a lamp. Ignored while another key is held. */
+  /** Opens or closes the lid. Closing puts back any rotor in hand and ends the ring close-up. */
+  setLidOpen(open: boolean): string
+  /** Lifts the rotor from a slot, or the given rotor from the box. Returns the new status. */
+  liftRotor(from: number | 'box', rotor?: RotorId): string
+  /** Puts the rotor in hand into a slot, swapping or replacing what's there. Returns the new status. */
+  placeRotor(slot: number): string
+  /** Puts the rotor in hand back where it came from. Returns the new status, or null if empty-handed. */
+  returnRotor(): string | null
+  /** Opens the ring-setting close-up for a slot (null closes it), putting back any rotor in hand. */
+  setRingSlot(slot: number | null): void
+
+  /** Presses a key: steps the rotors and lights a lamp. Ignored while another key is held or a rotor is in hand. */
   keyDown(letter: string): Trace | null
   keyUp(): void
   /** Runs every letter of `text` through the machine and returns the result. */
@@ -74,8 +101,21 @@ export const INITIAL_CONFIG: MachineConfig = {
 
 const EMPTY_TAPE: Tape = { input: '', output: '', start: null }
 
+export interface RotorInHand {
+  readonly rotor: RotorId
+  /** Slot it was lifted from, or 'box'. */
+  readonly from: number | 'box'
+}
+
+/** Rotors that fit this model but aren't in the machine: the contents of the rotor box. */
+export function boxRotors(config: MachineConfig): RotorId[] {
+  const model = MODELS[config.model]
+  return [...model.thinRotors, ...model.rotors].filter((id) => !config.rotors.includes(id))
+}
+
 export const MAX_CABLES = 13
 const PLUG_PROMPT = 'Select a socket to start a cable.'
+const ROTOR_PROMPT = 'Lift a rotor out of the machine or the box, then choose where to put it.'
 
 export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
   return createStore<MachineState>()((set, get) => {
@@ -102,6 +142,11 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
       tape: EMPTY_TAPE,
       plugSelection: null,
       plugMessage: PLUG_PROMPT,
+      lidOpen: false,
+      hand: null,
+      ringSlot: null,
+      rotorMessage: ROTOR_PROMPT,
+      boxRings: {},
 
       setModel(model) {
         const current = get().config
@@ -120,7 +165,9 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
         if (validateConfig(candidate).length > 0) {
           candidate = { ...candidate, rotors: DEFAULTS[model].rotors }
         }
-        return apply(candidate, Array<number>(spec.slots).fill(0))
+        const problems = apply(candidate, Array<number>(spec.slots).fill(0))
+        if (problems.length === 0) set({ boxRings: {} })
+        return problems
       },
 
       setReflector(reflector) {
@@ -128,11 +175,26 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
       },
 
       setRotor(slot, rotor) {
-        const { config } = get()
+        // The ring setting belongs to the rotor, so it moves with it: two rotors swapped in the
+        // machine swap rings, and a rotor going into the box keeps its ring for next time.
+        const { config, boxRings } = get()
+        const displaced = config.rotors[slot]
+        if (displaced === rotor) return []
         const other = config.rotors.indexOf(rotor)
         let rotors = patchSlot(config.rotors, slot, rotor)
-        if (other >= 0 && other !== slot) rotors = patchSlot(rotors, other, config.rotors[slot])
-        return apply({ ...config, rotors })
+        let rings = config.rings
+        let nextBoxRings = boxRings
+        if (other >= 0) {
+          rotors = patchSlot(rotors, other, displaced)
+          rings = patchSlot(patchSlot(rings, slot, config.rings[other]), other, config.rings[slot])
+        } else {
+          rings = patchSlot(rings, slot, boxRings[rotor] ?? 0)
+          nextBoxRings = { ...boxRings, [displaced]: config.rings[slot] }
+          delete nextBoxRings[rotor]
+        }
+        const problems = apply({ ...config, rotors, rings })
+        if (problems.length === 0) set({ boxRings: nextBoxRings })
+        return problems
       },
 
       setRing(slot, ring) {
@@ -174,6 +236,17 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
         return message
       },
 
+      pullPlug(letter) {
+        const { config } = get()
+        const pair = config.plugboard.find((p) => p.includes(letter))
+        if (!pair) return get().plugMessage
+        const partner = pair.replace(letter, '')
+        apply({ ...config, plugboard: config.plugboard.filter((p) => p !== pair) })
+        const message = `Pulled the plug out of ${letter}; the cable is still in ${partner}. Choose a socket for it.`
+        set({ plugSelection: partner, plugMessage: message })
+        return message
+      },
+
       cancelPlug() {
         const { plugSelection } = get()
         if (plugSelection === null) return null
@@ -182,9 +255,79 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
         return message
       },
 
+      setLidOpen(open) {
+        const message = open
+          ? ROTOR_PROMPT
+          : get().hand
+            ? `Put rotor ${get().hand!.rotor} back and closed the lid.`
+            : 'Closed the lid.'
+        set({ lidOpen: open, hand: null, ringSlot: null, rotorMessage: message })
+        return message
+      },
+
+      liftRotor(from, rotor) {
+        const id = from === 'box' ? rotor : get().config.rotors[from]
+        if (!id) return get().rotorMessage
+        const names = slotNames(get().config.rotors.length)
+        const message =
+          from === 'box'
+            ? `Holding rotor ${id} from the box. Choose a slot to put it in.`
+            : `Lifted rotor ${id} out of the ${names[from].toLowerCase()} slot. Choose where to put it.`
+        set({ hand: { rotor: id, from }, ringSlot: null, rotorMessage: message })
+        return message
+      },
+
+      placeRotor(slot) {
+        const { hand, config } = get()
+        if (!hand) return get().liftRotor(slot)
+        const names = slotNames(config.rotors.length)
+        const where = `the ${names[slot].toLowerCase()} slot`
+        let message: string
+        if (hand.from === slot) {
+          message = `Put rotor ${hand.rotor} back in ${where}.`
+        } else {
+          const displaced = config.rotors[slot]
+          const problems = get().setRotor(slot, hand.rotor)
+          if (problems.length > 0) {
+            message = problems[0] // keep holding it
+            set({ rotorMessage: message })
+            return message
+          }
+          message =
+            hand.from === 'box'
+              ? `Rotor ${hand.rotor} is in ${where}; rotor ${displaced} went back to the box.`
+              : `Rotor ${hand.rotor} is in ${where}; rotor ${displaced} moved to the ${names[hand.from].toLowerCase()} slot.`
+        }
+        set({ hand: null, rotorMessage: message })
+        return message
+      },
+
+      returnRotor() {
+        const { hand, config } = get()
+        if (!hand) return null
+        const message =
+          hand.from === 'box'
+            ? `Put rotor ${hand.rotor} back in the box.`
+            : `Put rotor ${hand.rotor} back in the ${slotNames(config.rotors.length)[hand.from].toLowerCase()} slot.`
+        set({ hand: null, rotorMessage: message })
+        return message
+      },
+
+      setRingSlot(slot) {
+        // A rotor in hand goes back where it came from before the close-up opens.
+        if (slot !== null) get().returnRotor()
+        set({ ringSlot: slot })
+      },
+
       keyDown(letter) {
         const { heldKey, machine, positions, tape } = get()
         if (heldKey !== null) return null
+        if (get().hand) {
+          set({
+            rotorMessage: `Put rotor ${get().hand!.rotor} down before typing: the circuit is broken.`,
+          })
+          return null
+        }
         const trace = press(machine, positions, letter)
         set({
           heldKey: trace.input,

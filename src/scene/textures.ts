@@ -73,3 +73,16 @@ export function knurlTexture() {
   texture.wrapS = RepeatWrapping
   return texture
 }
+
+/** A short label (e.g. a rotor's Roman numeral) on a dark plate. */
+export function labelTexture(text: string) {
+  return make(`label:${text}`, 256, 96, (ctx) => {
+    ctx.fillStyle = '#1c1917'
+    ctx.fillRect(0, 0, 256, 96)
+    ctx.fillStyle = '#f5f5f4'
+    ctx.font = font(60)
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, 128, 52)
+  })
+}

@@ -261,8 +261,17 @@ test.describe('3D model', () => {
 
   test('renders only while something is moving', async ({ page }) => {
     const frames = () => page.evaluate(() => window.__enigma3d?.frames() ?? -1)
+    // Wait (up to 5 s) for animations to finish — a quiet half-second — then count the frames
+    // drawn in the following full second. Continuous rendering never goes quiet and fails.
     const idleFrames = async () => {
-      await page.waitForTimeout(1500) // let animations settle
+      const deadline = Date.now() + 5000
+      let last = await frames()
+      while (Date.now() < deadline) {
+        await page.waitForTimeout(500)
+        const now = await frames()
+        if (now === last) break
+        last = now
+      }
       const before = await frames()
       await page.waitForTimeout(1000)
       return (await frames()) - before

@@ -1,6 +1,7 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { mod26, toLetter } from '../engine/index.ts'
 import { useMachine } from '../state/machineStore.ts'
+import { trackPointer } from './dragging.ts'
 import { slotNames } from './layout.ts'
 
 /** The windows in the lid showing each rotor's current letter, with thumbwheels to turn them. */
@@ -74,6 +75,18 @@ function RotorWindow({
     e.preventDefault()
   }
 
+  // Drag the window up or down like a thumbwheel: one letter per 16px.
+  const onPointerDown = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return
+    const start = position
+    trackPointer(e, {
+      onMove: (ev, dragged) => {
+        if (dragged) onChange(start + Math.trunc((e.clientY - ev.clientY) / 16))
+      },
+      onUp: () => {},
+    })
+  }
+
   const wheelButton =
     'h-7 w-10 rounded text-stone-300 hover:bg-stone-700 hover:text-white active:bg-stone-600'
 
@@ -99,7 +112,8 @@ function RotorWindow({
         aria-valuetext={toLetter(position)}
         data-double-step={doubleStepped || undefined}
         onKeyDown={onKeyDown}
-        className="flex w-12 flex-col items-center overflow-hidden rounded-md border-2 border-stone-500 data-double-step:border-orange-500 data-double-step:ring-4 data-double-step:ring-orange-500/40 bg-stone-100 py-1 font-mono text-stone-900 shadow-inner outline-offset-4 select-none focus-visible:outline-2 focus-visible:outline-amber-300"
+        onPointerDown={onPointerDown}
+        className="flex w-12 cursor-ns-resize touch-none flex-col items-center overflow-hidden rounded-md border-2 border-stone-500 data-double-step:border-orange-500 data-double-step:ring-4 data-double-step:ring-orange-500/40 bg-stone-100 py-1 font-mono text-stone-900 shadow-inner outline-offset-4 select-none focus-visible:outline-2 focus-visible:outline-amber-300"
       >
         <div
           key={position}

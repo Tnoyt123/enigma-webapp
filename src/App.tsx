@@ -6,6 +6,7 @@ import { SignalPanel } from './panels/SignalPanel.tsx'
 import { useView } from './state/viewStore.ts'
 import { LiveAnnouncer } from './ui2d/LiveAnnouncer.tsx'
 import { Machine2D } from './ui2d/Machine2D.tsx'
+import { RingDialog } from './ui2d/RingDialog.tsx'
 import { usePhysicalKeyboard } from './ui2d/usePhysicalKeyboard.ts'
 
 // Loaded on demand, so the 2D view never downloads three.js.
@@ -54,6 +55,7 @@ export default function App() {
           <MessageTape />
         </div>
       </main>
+      {view === '2d' && <RingDialog />}
       <LiveAnnouncer />
     </div>
   )
