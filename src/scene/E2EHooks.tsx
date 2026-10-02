@@ -1,6 +1,8 @@
 import { useThree } from '@react-three/fiber'
 import { useEffect } from 'react'
 import { Box3, Vector3 } from 'three'
+import { fitsSlot, machineStore } from '../state/machineStore.ts'
+import { carryStore } from './carry.ts'
 import { pathInfo } from './xray.ts'
 
 declare global {
@@ -12,6 +14,8 @@ declare global {
       signalPath(): { segments: number; focus: string | null }
       /** Frames rendered so far (the canvas renders on demand, so this stops rising when idle). */
       frames(): number
+      /** Where a held rotor would be dropped now (outlined), and whether it fits there. */
+      dropTarget(): { target: number | 'box' | null; fits: boolean }
     }
   }
 }
@@ -35,6 +39,13 @@ export function E2EHooks() {
       },
       signalPath: () => ({ ...pathInfo }),
       frames: () => gl.info.render.frame,
+      dropTarget: () => {
+        const { target } = carryStore.getState()
+        const { hand, config } = machineStore.getState()
+        const fits =
+          !hand || target === null || target === 'box' || fitsSlot(config, hand.rotor, target)
+        return { target: hand ? target : null, fits }
+      },
     }
     return () => {
       delete window.__enigma3d

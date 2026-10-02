@@ -113,6 +113,13 @@ export function boxRotors(config: MachineConfig): RotorId[] {
   return [...model.thinRotors, ...model.rotors].filter((id) => !config.rotors.includes(id))
 }
 
+/** Whether a model accepts this rotor in this slot (the M4's leftmost slot takes thin rotors only). */
+export function fitsSlot(config: MachineConfig, rotor: RotorId, slot: number): boolean {
+  const model = MODELS[config.model]
+  const thinSlot = model.slots === 4 && slot === 0
+  return (thinSlot ? model.thinRotors : model.rotors).includes(rotor)
+}
+
 export const MAX_CABLES = 13
 const PLUG_PROMPT = 'Select a socket to start a cable.'
 const ROTOR_PROMPT = 'Lift a rotor out of the machine or the box, then choose where to put it.'

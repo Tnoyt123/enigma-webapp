@@ -1,5 +1,8 @@
 import { CameraControls, Environment, Lightformer } from '@react-three/drei'
-import { Bloom, EffectComposer } from '@react-three/postprocessing'
+import { Bloom, EffectComposer, Outline, Selection } from '@react-three/postprocessing'
+import { useStore } from 'zustand'
+import { fitsSlot, machineStore } from '../state/machineStore.ts'
+import { carryStore } from './carry.ts'
 import { Case } from './Case.tsx'
 import { registerControls } from './controls.ts'
 import { E2EHooks } from './E2EHooks.tsx'
@@ -12,7 +15,8 @@ import { XrayRefresh } from './XrayRefresh.tsx'
 
 export function Scene() {
   return (
-    <>
+    // Selection collects the objects wrapped in <Select enabled> for the Outline effect.
+    <Selection>
       <color attach="background" args={['#0c0a09']} />
       <ambientLight intensity={0.35} />
       <directionalLight position={[4, 12, 8]} intensity={1.6} />
@@ -43,10 +47,34 @@ export function Scene() {
         maxDistance={30}
         maxPolarAngle={Math.PI * 0.62}
       />
-      <EffectComposer multisampling={4}>
+      {/* autoClear off: required by Outline. */}
+      <EffectComposer multisampling={4} autoClear={false}>
         <Bloom luminanceThreshold={1} intensity={1.1} mipmapBlur />
+        <DropOutline />
       </EffectComposer>
       <E2EHooks />
-    </>
+    </Selection>
+  )
+}
+
+const FITS = '#facc15'
+const REFUSED = '#ef4444'
+
+/** Silhouette outline of the selected drop-target phantom: yellow if the rotor fits, red if not. */
+function DropOutline() {
+  const target = useStore(carryStore, (s) => s.target)
+  const hand = useStore(machineStore, (s) => s.hand)
+  const config = useStore(machineStore, (s) => s.config)
+  const fits = !hand || target === null || target === 'box' || fitsSlot(config, hand.rotor, target)
+  const color = fits ? FITS : REFUSED
+  return (
+    <Outline
+      visibleEdgeColor={color}
+      hiddenEdgeColor={color}
+      // Outline the whole silhouette, even where the machine hides part of it.
+      xRay
+      edgeStrength={6}
+      blur
+    />
   )
 }

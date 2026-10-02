@@ -72,6 +72,52 @@ for (const view of VIEWS) {
         ).toBeNull()
     })
 
+    test('while dragging, the drop target is outlined: yellow if it fits, red if not', async ({
+      page,
+    }) => {
+      await page.getByLabel(/Enigma M4/).check()
+      await openLid(page, view)
+      const target = () =>
+        view === '2d'
+          ? page.evaluate(() => {
+              const el = document.querySelector('[data-drop-target]') as HTMLElement | null
+              return (
+                el && {
+                  target: Number(el.dataset.rotorSlot),
+                  fits: el.dataset.dropTarget === 'fits',
+                }
+              )
+            })
+          : page.evaluate(() => {
+              const t = window.__enigma3d!.dropTarget()
+              return t.target === null ? null : t
+            })
+      const hold = async (rotor: string, slot: number) => {
+        const from = await pointOf(page, view, boxRotor(rotor))
+        const to = await pointOf(page, view, rotorSlot(slot))
+        await page.mouse.move(from.x, from.y)
+        await page.mouse.down()
+        for (let i = 1; i <= 8; i++) {
+          await page.mouse.move(
+            from.x + ((to.x - from.x) * i) / 8,
+            from.y + ((to.y - from.y) * i) / 8,
+          )
+        }
+      }
+
+      await hold('Gamma', 3)
+      await expect.poll(target).toEqual({ target: 3, fits: false })
+      await page.mouse.up() // refused: still holding Gamma
+      await page.getByRole('button', { name: 'Put rotor Gamma back' }).click()
+
+      await hold('VI', 3)
+      await expect.poll(target).toEqual({ target: 3, fits: true })
+      if (view === '3d') await point3d(page, 'drop-phantom')
+      await page.mouse.up()
+      await expect(keySheetRotor(page, 'Right')).toHaveValue('VI')
+      await expect.poll(target).toBeNull()
+    })
+
     test('click a rotor, then another slot, to swap them', async ({ page }) => {
       await openLid(page, view)
       const left = await pointOf(page, view, rotorSlot(0))

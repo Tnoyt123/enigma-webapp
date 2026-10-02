@@ -13,7 +13,18 @@ export interface Carried {
   readonly point: [number, number, number]
 }
 
-export const carryStore = createStore<{ carried: Carried | null }>()(() => ({ carried: null }))
+/** Where a held rotor would go if put down now: a slot, or the box (meaning back where it came from). */
+export type DropTarget = number | 'box'
+
+export const carryStore = createStore<{ carried: Carried | null; target: DropTarget | null }>()(
+  () => ({ carried: null, target: null }),
+)
+
+/** Pointer entered / left a drop target while a rotor is held. */
+export function hoverTarget(target: DropTarget, entering: boolean): void {
+  if (entering) carryStore.setState({ target })
+  else if (carryStore.getState().target === target) carryStore.setState({ target: null })
+}
 
 /** Horizontal plane at the height a lifted rotor hovers. */
 const CARRY_PLANE = new Plane(new Vector3(0, 1, 0), -(ROTOR.y + LIFT))

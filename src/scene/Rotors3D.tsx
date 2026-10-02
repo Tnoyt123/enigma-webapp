@@ -1,4 +1,5 @@
 import { useCursor } from '@react-three/drei'
+import { Select } from '@react-three/postprocessing'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from 'zustand'
@@ -9,7 +10,7 @@ import { useTeaching } from '../state/teachingStore.ts'
 import { reveal } from '../teaching/explain.ts'
 import { announce } from '../ui2d/announce.ts'
 import { trackPointer } from '../ui2d/dragging.ts'
-import { carryStore, useCarry } from './carry.ts'
+import { carryStore, hoverTarget, useCarry, type DropTarget } from './carry.ts'
 import { gesture, rotorDropped, setOrbitEnabled } from './controls.ts'
 import {
   angleFor,
@@ -92,6 +93,7 @@ export function Rotors3D() {
       </group>
       {lidOpen && <RotorBox3D />}
       <CarriedRotor />
+      {lidOpen && <DropPhantom />}
     </>
   )
 }
@@ -271,8 +273,13 @@ function SlotRotor({
           onPointerOver={(e) => {
             e.stopPropagation()
             setHovered(true)
+            // With a rotor in hand, this slot becomes the drop target (outlined).
+            if (store().hand) hoverTarget(slot, true)
           }}
-          onPointerOut={() => setHovered(false)}
+          onPointerOut={() => {
+            setHovered(false)
+            hoverTarget(slot, false)
+          }}
         >
           <boxGeometry
             args={[ringWidth + ROTOR.wheelWidth + 0.1, 2.4 + (lifted ? LIFT : 0), 2.4]}
@@ -384,6 +391,8 @@ function RotorBox3D() {
       <mesh
         name="rotor-box"
         position={[cx, 0.4, 0]}
+        onPointerOver={() => store().hand && hoverTarget('box', true)}
+        onPointerOut={() => hoverTarget('box', false)}
         onPointerUp={(e) => {
           // A click on a rotor in the box keeps holding it; dropping one here puts it back.
           if (!rotorDropped(e.nativeEvent) || !store().hand) return
@@ -408,6 +417,8 @@ function RotorBox3D() {
             {carriedRotor !== rotor && <Label text={rotor} y={ROTOR.radius + 0.45} />}
             <mesh
               name={`box-rotor-${rotor}`}
+              // Hit shape matches the rotor, so a neighbour's hit area never covers it.
+              rotation-z={-Math.PI / 2}
               onPointerDown={(e) => {
                 if (e.button !== 0) return
                 if (store().hand) store().returnRotor()
@@ -415,7 +426,14 @@ function RotorBox3D() {
                 carry(e, rotor, boxRings[rotor] ?? 0)
               }}
             >
-              <boxGeometry args={[0.7, 2.2, 2.2]} />
+              <cylinderGeometry
+                args={[
+                  ROTOR.radius,
+                  ROTOR.radius,
+                  ROTORS[rotor].thin ? ROTOR.ringWidth * 0.7 : ROTOR.ringWidth,
+                  24,
+                ]}
+              />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
           </Lift>
@@ -480,4 +498,52 @@ function CarriedRotor() {
       <Label text={carried.rotor} y={ROTOR.radius + 0.45} />
     </group>
   )
+}
+
+/**
+ * An invisible copy of the held rotor exactly where it would land if put down now. Only its
+ * silhouette is drawn, by the Outline effect: over a slot, at that slot's seat; over the box, back
+ * where it came from (a rotor from the machine can't stay in the box, so it returns to its slot).
+ */
+function DropPhantom() {
+  const target = useStore(carryStore, (s) => s.target)
+  const hand = useMachine((s) => s.hand)
+  const config = useMachine((s) => s.config)
+  if (!hand || target === null) return null
+
+  const destination: DropTarget = target === 'box' ? hand.from : target
+  const thin = ROTORS[hand.rotor].thin
+  const ringWidth = thin ? ROTOR.ringWidth * 0.7 : ROTOR.ringWidth
+  let position: [number, number, number]
+  let withWheel = true
+  if (destination === 'box') {
+    const index = boxRotors(config).indexOf(hand.rotor)
+    position = [boxRotorX(index), ROTOR_BOX.y, ROTOR_BOX.z]
+    withWheel = false // spares in the box are drawn without thumbwheels
+  } else {
+    const stack = rotorStack(config.rotors.map((id) => ROTORS[id].thin))
+    position = [stack.slots[destination].x, ROTOR.y, ROTOR.z]
+  }
+
+  return (
+    <Select enabled>
+      <group position={position} name="drop-phantom">
+        <mesh rotation-z={-Math.PI / 2}>
+          <cylinderGeometry args={[ROTOR.radius, ROTOR.radius, ringWidth, 48]} />
+          <PhantomMaterial />
+        </mesh>
+        {withWheel && (
+          <mesh position={[-(ringWidth + ROTOR.wheelWidth) / 2, 0, 0]} rotation-z={-Math.PI / 2}>
+            <cylinderGeometry args={[ROTOR.wheelRadius, ROTOR.wheelRadius, ROTOR.wheelWidth, 48]} />
+            <PhantomMaterial />
+          </mesh>
+        )}
+      </group>
+    </Select>
+  )
+}
+
+/** Draws nothing itself: the phantom exists only to be outlined. */
+function PhantomMaterial() {
+  return <meshBasicMaterial colorWrite={false} depthWrite={false} />
 }

@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { REFLECTORS, toLetter, type RotorId } from '../engine/index.ts'
-import { boxRotors, machineStore, useMachine } from '../state/machineStore.ts'
+import { boxRotors, fitsSlot, machineStore, useMachine } from '../state/machineStore.ts'
 import { slotNames } from '../teaching/explain.ts'
 import { announce } from './announce.ts'
 import { dropTargetAt, trackPointer } from './dragging.ts'
@@ -23,6 +23,14 @@ export function RotorBay({ compact = false }: { compact?: boolean }) {
   const names = slotNames(config.rotors.length)
   const box = boxRotors(config)
   const [ghost, setGhost] = useState<{ x: number; y: number; rotor: RotorId } | null>(null)
+  /** Slot under the pointer while a rotor is held: ringed yellow if it fits, red if not. */
+  const [hoverSlot, setHoverSlot] = useState<number | null>(null)
+  const dropTarget = (slot: number) =>
+    hand && hoverSlot === slot && hand.from !== slot
+      ? fitsSlot(config, hand.rotor, slot)
+        ? 'fits'
+        : 'refused'
+      : undefined
 
   const say = (text: string | null) => text && announce(text)
   const store = () => machineStore.getState()
@@ -82,11 +90,14 @@ export function RotorBay({ compact = false }: { compact?: boolean }) {
                     : `${names[slot]} slot: rotor ${rotor}${hand ? `. Put rotor ${hand.rotor} here` : ''}`
                 }
                 onPointerDown={(e) => onSlotPointerDown(e, slot)}
+                onPointerEnter={() => setHoverSlot(slot)}
+                onPointerLeave={() => setHoverSlot((s) => (s === slot ? null : s))}
+                data-drop-target={dropTarget(slot)}
                 onClick={(e) => {
                   if (e.detail !== 0) return // pointer presses are handled on pointer down
                   say(store().hand ? store().placeRotor(slot) : store().liftRotor(slot))
                 }}
-                className={`${rotorFace} ${focusRing} touch-none ${
+                className={`${rotorFace} ${focusRing} touch-none data-[drop-target=fits]:ring-4 data-[drop-target=fits]:ring-yellow-400 data-[drop-target=refused]:ring-4 data-[drop-target=refused]:ring-red-500 ${
                   lifted
                     ? 'border-dashed border-stone-500 bg-transparent text-stone-400 shadow-none'
                     : hand

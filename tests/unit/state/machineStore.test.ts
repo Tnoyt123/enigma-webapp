@@ -249,3 +249,29 @@ describe('pulling a plug', () => {
     expect(s().pullPlug('Q')).toBe('Connected V and B.') // not plugged: nothing happens
   })
 })
+
+describe('fitsSlot', () => {
+  it('knows which rotors each slot takes', async () => {
+    const { fitsSlot } = await import('../../../src/state/machineStore.ts')
+    const m4 = {
+      model: 'M4',
+      reflector: 'B-thin',
+      rotors: ['Beta', 'I', 'II', 'III'],
+      rings: [0, 0, 0, 0],
+      plugboard: [],
+    } as const
+    expect(fitsSlot(m4, 'Gamma', 0)).toBe(true)
+    expect(fitsSlot(m4, 'Gamma', 3)).toBe(false)
+    expect(fitsSlot(m4, 'VIII', 0)).toBe(false)
+    expect(fitsSlot(m4, 'VIII', 2)).toBe(true)
+    const enigmaI = {
+      ...m4,
+      model: 'I',
+      reflector: 'B',
+      rotors: ['I', 'II', 'III'],
+      rings: [0, 0, 0],
+    } as const
+    expect(fitsSlot(enigmaI, 'VI', 1)).toBe(false)
+    expect(fitsSlot(enigmaI, 'V', 0)).toBe(true)
+  })
+})
