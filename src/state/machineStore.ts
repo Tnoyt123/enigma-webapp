@@ -57,6 +57,8 @@ export interface MachineState {
   setRotor(slot: number, rotor: RotorId): string[]
   setRing(slot: number, ring: number): string[]
   setPosition(slot: number, position: number): string[]
+  /** Sets every rotor at once from window letters, e.g. "BLA". */
+  setPositions(letters: string): string[]
   setPlugboard(pairs: readonly string[]): string[]
   /** Click/Enter on a plugboard socket: start, finish, cancel or remove a cable. Returns the new status. */
   activateSocket(letter: string): string
@@ -212,6 +214,13 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
       setPosition(slot, position) {
         const { config, positions } = get()
         return apply(config, patchSlot(positions, slot, position))
+      },
+
+      setPositions(letters) {
+        const positions = [...letters.toUpperCase()].map((ch) =>
+          ch >= 'A' && ch <= 'Z' ? ch.charCodeAt(0) - 65 : -1,
+        )
+        return apply(get().config, positions)
       },
 
       setPlugboard(pairs) {

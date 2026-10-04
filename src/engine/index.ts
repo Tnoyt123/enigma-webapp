@@ -15,6 +15,19 @@ export {
   type StepResult,
 } from './machine.ts'
 export { parsePlugboard, plugboardMap } from './plugboard.ts'
-export { toGroups } from './procedure.ts'
+export {
+  BIGRAM_TABLE,
+  disguiseIndicator,
+  PROCEDURES,
+  receiveMessage,
+  revealIndicator,
+  sendMessage,
+  toGroups,
+  type ProcedureId,
+  type ProcedureInfo,
+  type ProcedureStep,
+  type RadioMessage,
+  type ReceivedMessage,
+} from './procedure.ts'
 export { fromKeySheet, parseRings, type KeySheet } from './settings.ts'
 export type { Stage, Trace } from './trace.ts'

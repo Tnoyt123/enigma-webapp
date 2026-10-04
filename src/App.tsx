@@ -1,7 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { startMachineSounds } from './audio/sound.ts'
+import { SoundControls } from './app/SoundControls.tsx'
 import { ViewSwitch } from './app/ViewSwitch.tsx'
 import { KeySheet } from './panels/KeySheet.tsx'
 import { MessageTape } from './panels/MessageTape.tsx'
+import { RadioPanel } from './panels/RadioPanel.tsx'
 import { SignalPanel } from './panels/SignalPanel.tsx'
 import { useView } from './state/viewStore.ts'
 import { LiveAnnouncer } from './ui2d/LiveAnnouncer.tsx'
@@ -14,6 +17,7 @@ const Machine3D = lazy(() => import('./scene/Machine3D.tsx'))
 
 export default function App() {
   usePhysicalKeyboard()
+  useEffect(startMachineSounds, [])
   const view = useView((s) => s.view)
   const notice = useView((s) => s.notice)
   const dismissNotice = useView((s) => s.dismissNotice)
@@ -27,7 +31,10 @@ export default function App() {
             Type on your keyboard or press the machine's keys. Set it up with the key sheet.
           </p>
         </div>
-        <ViewSwitch />
+        <div className="flex flex-wrap items-center gap-4">
+          <SoundControls />
+          <ViewSwitch />
+        </div>
       </header>
       {notice && (
         <div
@@ -53,6 +60,7 @@ export default function App() {
           <SignalPanel />
           <KeySheet />
           <MessageTape />
+          <RadioPanel />
         </div>
       </main>
       {view === '2d' && <RingDialog />}

@@ -275,3 +275,13 @@ describe('fitsSlot', () => {
     expect(fitsSlot(enigmaI, 'V', 0)).toBe(true)
   })
 })
+
+describe('setPositions', () => {
+  it('sets all window letters at once, and refuses the wrong length', () => {
+    const store = createMachineStore()
+    expect(store.getState().setPositions('bla')).toEqual([])
+    expect(store.getState().positions).toEqual([1, 11, 0])
+    expect(store.getState().setPositions('AB')).toHaveLength(1)
+    expect(store.getState().setPositions('A1C')).toHaveLength(1)
+  })
+})

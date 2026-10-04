@@ -214,12 +214,18 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
   - axe with the lid open and the close-up showing;
   - the 2D ring dial drag, 3D scroll-wheel turning, and a rotor in hand surviving a view switch.
 
-### Phase 6 — Historical procedure + audio
+### Phase 6 — Historical procedure + audio ✅
 
-- Message format: header line (time, letter count, Grundstellung, encrypted indicator), 5-letter groups, and Kenngruppen for naval traffic.
-- Indicator procedure walkthroughs: pre-1940 doubled indicator, post-1940 Grundstellung method, and the M4 procedure.
-- Web Audio: a sample pool for key down/up, rotor ratchet and lamp click, with volume and mute. Shared by both views.
-- The message-procedure features live in the shared panels, so they work identically in 2D and 3D.
+- **Procedures** (`src/engine/procedure.ts`, pure and unit-tested): `sendMessage` / `receiveMessage` with the operator's steps for each.
+  - **Army & Luftwaffe, doubled indicator (Sept 1938 – May 1940):** a start position chosen by the operator and sent in clear, and the message key typed twice. Receiving checks that the key really is doubled. The steps explain the weakness the Polish Cipher Bureau exploited.
+  - **Army & Luftwaffe, single indicator (May 1940 – 1945):** the start position and the enciphered key go in the header, and an unenciphered identification group comes first. It reads the real Barbarossa header `1840 – 2TLE – 1TL – 179 – WXC KCH –` → message key BLA → plaintext.
+  - **Kriegsmarine (M3/M4):** the Grundstellung comes from the key sheet. The key-net and message trigrams from the Kenngruppenbuch are disguised with a bigram table, giving two 4-letter indicator groups that are repeated at the end. The text is in groups of four, and the M4's thin rotor stays at its Grundstellung letter. The bigram table is **illustrative**: reciprocal and seeded, since the real tables were secret.
+  - Procedures are offered per model: Enigma I gets the Army procedures, M3/M4 the naval one.
+- **Radio message panel** (shared sidebar): Send / Receive tabs, a procedure picker, letter fields with "Random", the message as transmitted with a copy button, and numbered operator steps. Each typing step has "Set the rotors to …", so you can try it on the machine.
+- **Sound** (`src/audio/sound.ts`): a key press plays the key going down, one ratchet click per stepping rotor (a double step is audibly three clicks) and the key coming up. The key down/up sounds are a recorded mechanical key (`assets/sounds/mech-button-1.wav`, from the user's "Mechanical Buttons SFX" pack). `scripts/build-sounds.py` cuts it into two ~13 KB mono WAVs in `public/sounds/`, which are decoded at start-up. The ratchet clicks are synthesized with Web Audio, as are fallback key sounds if the recordings haven't loaded. Bulk encipherment is silent. A header Sound toggle and volume slider are remembered in `localStorage`, and the audio context is created on the first key press.
+- **Tests:** 136 unit and 144 Playwright tests.
+  - **Unit:** round trips for all three procedures, the real Barbarossa header, the bigram table's reciprocity (a property test) and the error messages.
+  - **Browser, in both views:** receiving Barbarossa (then trying the indicator on the machine), sending and re-reading a doubled indicator, the M4 naval procedure, sounds per press (with a double step giving three ratchets), mute persisting across a reload, and axe.
 
 ### Phase 7 — Mobile, performance, polish, launch
 
@@ -237,5 +243,5 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 1. ~~3D assets~~: procedural for now (Phase 3); a Blender glTF model remains an option for later polish.
 2. ~~Styling~~: decided — Tailwind v4.
 3. ~~Hosting~~: decided — GitHub Pages.
-4. Sound sources: record, synthesize, or CC0 samples (licensing).
+4. ~~Sound sources~~: decided. The key sounds come from a recording from the user's sound pack; the ratchet clicks are synthesized (Phase 6).
 5. How much historical narrative to write for this phase vs. later.
