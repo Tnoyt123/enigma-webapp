@@ -30,13 +30,14 @@ export const socketAt = (letter: string): [number, number, number] => [
 ]
 
 export const ROTOR = {
-  /** Axle height and depth; the top of each rotor rises through the deck. */
-  y: -0.35,
+  /** Axle height and depth: the rings sit just below the deck; only the thumbwheels rise through it. */
+  y: -1.05,
   z: -2.7,
   radius: 1.0,
   ringWidth: 0.5,
   wheelWidth: 0.22,
-  wheelRadius: 1.12,
+  /** Large enough to stand proud of the closed hatch, so the operator can turn it. */
+  wheelRadius: 1.2,
   pitch: 1.35,
   /** Direction the operator reads the window letter from: mostly up, tilted toward them. */
   readingAngle: Math.PI * 0.32,
@@ -54,7 +55,8 @@ export const CAMERA_PRESETS: Record<
   CameraPreset,
   { label: string; position: [number, number, number]; target: [number, number, number] }
 > = {
-  operator: { label: 'Operator', position: [0, 11.5, 18.5], target: [0, -0.9, 1.6] },
+  // Looking down along the rotors' reading direction, so each window shows its letter square on.
+  operator: { label: 'Operator', position: [0, 16.2, 11.5], target: [0, -0.6, 0.6] },
   rotors: { label: 'Rotors', position: [0, 6.5, 2.2], target: [0, -0.2, -2.6] },
   plugboard: { label: 'Plugboard', position: [0, 1.1, 19.5], target: [0, -2.05, 6.4] },
 }
@@ -103,8 +105,26 @@ export function ringPoint(x: number, letter: number): [number, number, number] {
   return [x, CONTACT_RADIUS * Math.sin(psi), CONTACT_RADIUS * Math.cos(psi)]
 }
 
+/**
+ * The hatch over the rotors: the back part of the top deck, flush with the rest when closed.
+ * It is hinged along the back of the deck and reaches forward past the rotors to just short of
+ * the lampboard. Closed, the thumbwheels stand through slots and the letters show through windows.
+ */
+export const HATCH = {
+  hingeZ: -5.12,
+  /** Front edge, short of the first row of lamps. */
+  frontZ: -1.0,
+  halfWidth: 5.31,
+  thickness: 0.03,
+  /** How far it swings open: just past upright, so it stays open on its own. */
+  openAngle: -1.6,
+}
+
+/** The well under the hatch that the rotors sit in. */
+export const WELL = { halfWidth: 5.32, back: -5.12, front: -1.0, floor: -2.4 }
+
 /** How far a rotor rises when lifted out of its slot or the box. */
-export const LIFT = 2.2
+export const LIFT = 2.6
 
 /** The open rotor box beside the machine, to the right of the case. */
 export const ROTOR_BOX = { left: 6.4, right: 11.2, y: -0.9, z: ROTOR.z, pitch: 0.78 }
@@ -114,8 +134,8 @@ export function boxRotorX(index: number): number {
   return ROTOR_BOX.left + 0.6 + index * ROTOR_BOX.pitch
 }
 
-/** Camera looking over the open lid at the rotors and the rotor box. */
-export const LID_VIEW = { position: [3.4, 12.5, 9.5], target: [3.4, -0.6, -2.3] } as const
+/** Camera looking at the rotors and the rotor box, with the open hatch standing behind them. */
+export const LID_VIEW = { position: [3.4, 10.5, 13.5], target: [3.4, 0.7, -2.6] } as const
 
 /** Camera for the ring close-up of the rotor at `x`, which is lifted while its ring is set. */
 export function ringCloseUp(x: number) {

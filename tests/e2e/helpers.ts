@@ -5,6 +5,45 @@ import type {} from '../../src/scene/E2EHooks.tsx'
 
 export const VIEWS: readonly View[] = ['2d', '3d']
 
+/**
+ * Waits for the 3D scene to come to rest (camera, hatch, rotors) as seen on screen: until the
+ * named parts stop moving. The camera's easing has a long, invisible tail, so waiting for the
+ * canvas to stop drawing altogether would be needlessly slow, and fixed waits are too short on a
+ * slow (software) GPU, where animations take longer than their nominal duration.
+ */
+export async function settled(page: Page, parts: readonly string[] = ['key-A', 'hatch-lid']) {
+  const frames = () => page.evaluate(() => window.__enigma3d?.frames() ?? -1)
+  const start = await frames()
+  // First the motion must start: on a busy machine the first frame can take a while.
+  await expect.poll(frames, { timeout: 5000 }).toBeGreaterThan(start)
+  const where = () =>
+    page.evaluate((names) => names.map((n) => window.__enigma3d?.screenPoint(n) ?? null), parts)
+  const deadline = Date.now() + 25_000
+  let frame = await frames()
+  let last = await where()
+  let still = 0
+  while (Date.now() < deadline) {
+    // Compare positions only across frames actually drawn: on a slow machine a frame can take
+    // longer than any fixed polling interval.
+    const quietUntil = Date.now() + 750
+    let next = frame
+    while (next === frame && Date.now() < quietUntil) {
+      await page.waitForTimeout(50)
+      next = await frames()
+    }
+    if (next === frame) return // nothing drawn for a while: the canvas is idle
+    frame = next
+    const now = await where()
+    const moved = now.some(
+      (p, i) => !p || !last[i] || Math.hypot(p.x - last[i]!.x, p.y - last[i]!.y) > 0.3,
+    )
+    still = moved ? 0 : still + 1
+    if (still === 3) return
+    last = now
+  }
+  throw new Error('the 3D scene never stopped moving')
+}
+
 export const tapeInput = (page: Page) => page.getByTestId('tape-input')
 export const tapeOutput = (page: Page) => page.getByTestId('tape-output')
 export const rotor = (page: Page, slot: string) =>
@@ -44,11 +83,16 @@ export async function pointerDownOnKey(page: Page, view: View, letter: string) {
   await page.mouse.down()
 }
 
-/** Clicks a plugboard socket with the pointer. */
+/** Clicks a plugboard socket with the pointer (in 3D, from the plugboard camera view). */
 export async function clickSocket(page: Page, view: View, letter: string) {
   if (view === '2d') {
     await page.getByRole('button', { name: new RegExp(`^Socket ${letter},`) }).click()
   } else {
+    const plugboardView = page.getByRole('button', { name: 'Plugboard', exact: true })
+    if ((await plugboardView.getAttribute('aria-pressed')) !== 'true') {
+      await plugboardView.click()
+      await settled(page) // the camera moves round to the front
+    }
     const { x, y } = await point3d(page, `socket-${letter}`)
     await page.mouse.click(x, y)
   }
@@ -124,7 +168,7 @@ export const thumbwheel = (slot: number, slotName: string) => ({
 /** Opens the lid and waits for the camera (3D) to settle on the rotors. */
 export async function openLid(page: Page, view: View) {
   await page.getByRole('button', { name: 'Open the lid' }).click()
-  if (view === '3d') await page.waitForTimeout(1500)
+  if (view === '3d') await settled(page)
 }
 
 /** The rotor (I…VIII, Beta, Gamma) the key sheet shows in a slot. */

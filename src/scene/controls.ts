@@ -1,13 +1,38 @@
 import type { CameraControls } from '@react-three/drei'
+import { Vector3 } from 'three'
 import { machineStore } from '../state/machineStore.ts'
 import { DRAG_THRESHOLD } from '../ui2d/dragging.ts'
 import { CAMERA_PRESETS, type CameraPreset } from './layout3d.ts'
+import { MAX_STEP } from './motion.ts'
 
 /** The scene's camera controls, shared so machine parts can pause orbiting while being pressed. */
 let controls: CameraControls | null = null
 
+const tuned = new WeakSet<CameraControls>()
+
+/**
+ * How close (radians, scene units) the camera must be to where it's heading before it is put
+ * there: about a pixel, by which point it is moving too slowly to see.
+ */
+const REST_THRESHOLD = 0.001
+
 export function registerControls(instance: CameraControls | null): void {
   controls = instance
+  if (instance && !tuned.has(instance)) {
+    tuned.add(instance)
+    // Like every other motion, the camera advances at most MAX_STEP a frame, so it glides
+    // rather than jumping after an idle pause or a slow frame (see MAX_STEP).
+    const update = instance.update.bind(instance)
+    instance.update = (delta: number) => update(Math.min(delta, MAX_STEP))
+    // The camera's easing creeps toward its destination for seconds after it looks still, and
+    // the canvas keeps drawing all that time. Once it is within REST_THRESHOLD, finish the move.
+    instance.restThreshold = REST_THRESHOLD
+    instance.addEventListener('rest', () => {
+      const position = instance.getPosition(new Vector3(), true)
+      const target = instance.getTarget(new Vector3(), true)
+      void instance.setLookAt(...position.toArray(), ...target.toArray(), false)
+    })
+  }
   // Start at the operator's seat.
   if (instance) moveCamera('operator', false)
 }

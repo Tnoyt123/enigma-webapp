@@ -8,6 +8,7 @@ import {
   point3d,
   pointerDownOnKey,
   rotor,
+  settled,
   tapeInput,
   tapeOutput,
   VIEWS,
@@ -233,9 +234,11 @@ test.describe('3D model', () => {
   test('x-ray looks the same whether switched on before or after the 3D view loads', async ({
     page,
   }) => {
+    // Two camera moves and a remount with every material see-through: slow on a software GPU.
+    test.setTimeout(60_000)
     const rotorsCamera = async () => {
       await page.getByRole('button', { name: 'Rotors', exact: true }).click()
-      await page.waitForTimeout(1500) // let the camera settle
+      await settled(page) // let the camera settle
     }
     // Switched on while the 3D view is showing (materials must be recompiled).
     await rotorsCamera()

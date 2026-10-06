@@ -87,6 +87,10 @@ export default function Machine3D() {
           dpr={[1, 1.5]}
           camera={{ fov: 35, position: CAMERA_PRESETS.operator.position }}
           data-testid="machine-3d-canvas"
+          // The case is carved by clipping planes to make the rotor well.
+          onCreated={({ gl }) => {
+            gl.localClippingEnabled = true
+          }}
         >
           <Scene />
         </Canvas>

@@ -16,6 +16,13 @@ export function shortestAngle(delta: number): number {
 }
 
 /**
+ * Longest time step an animation advances in one frame. The canvas renders on demand, so the
+ * first frame after a pause reports the whole idle time (and a frame that compiles new shaders
+ * can take hundreds of milliseconds); without a cap, a motion would jump to its end.
+ */
+export const MAX_STEP = 1 / 30
+
+/**
  * The canvas renders on demand. This runs `step` every frame while something is moving and asks
  * for another frame until `step` reports it has settled; changing `deps` starts it moving again.
  */
@@ -24,7 +31,7 @@ export function useSettlingFrame(step: (dt: number) => boolean, deps: readonly u
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `deps` are the animation's targets
   useEffect(() => invalidate(), deps)
   useFrame((_, dt) => {
-    if (step(dt)) invalidate()
+    if (step(Math.min(dt, MAX_STEP))) invalidate()
   })
 }
 

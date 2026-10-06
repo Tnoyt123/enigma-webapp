@@ -6,6 +6,7 @@ import { carryStore } from './carry.ts'
 import { Case } from './Case.tsx'
 import { registerControls } from './controls.ts'
 import { E2EHooks } from './E2EHooks.tsx'
+import { Hatch3D } from './Hatch3D.tsx'
 import { Keys3D } from './Keys3D.tsx'
 import { Lamps3D } from './Lamps3D.tsx'
 import { Plugboard3D } from './Plugboard3D.tsx'
@@ -26,6 +27,7 @@ export function Scene() {
 
       <Case />
       <Rotors3D />
+      <Hatch3D />
       <Lamps3D />
       <Keys3D />
       <Plugboard3D />

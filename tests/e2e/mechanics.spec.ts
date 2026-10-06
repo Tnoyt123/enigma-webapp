@@ -10,6 +10,7 @@ import {
   pointOf,
   rotor,
   rotorSlot,
+  settled,
   socket,
   tapeInput,
   thumbwheel,
@@ -123,7 +124,7 @@ for (const view of VIEWS) {
       const left = await pointOf(page, view, rotorSlot(0))
       await page.mouse.click(left.x, left.y)
       await expect(page.getByTestId('rotor-message')).toContainText('Lifted rotor I')
-      if (view === '3d') await page.waitForTimeout(800) // the rotor rises
+      if (view === '3d') await settled(page, ['ring-0']) // the rotor rises
       const right = await pointOf(page, view, rotorSlot(2))
       await page.mouse.click(right.x, right.y)
       await expect(keySheetRotor(page, 'Left')).toHaveValue('III')
@@ -152,7 +153,7 @@ for (const view of VIEWS) {
       await page.getByRole('button', { name: 'Set ring for the left rotor (I)' }).click()
       for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowUp') // ring F
       await page.getByRole('button', { name: 'Done' }).click()
-      if (view === '3d') await page.waitForTimeout(1200) // camera back over the rotors
+      if (view === '3d') await settled(page) // camera back over the rotors
 
       await drag(
         page,
@@ -234,7 +235,7 @@ for (const view of VIEWS) {
     test('drag a cable between sockets, then pull its plug out and move it', async ({ page }) => {
       if (view === '3d') {
         await page.getByRole('button', { name: 'Plugboard', exact: true }).click()
-        await page.waitForTimeout(1500)
+        await settled(page)
       }
       await drag(
         page,
@@ -307,4 +308,18 @@ test('3D: scrolling over a thumbwheel turns it', async ({ page }) => {
   await page.mouse.wheel(0, 100)
   await page.mouse.wheel(0, 100)
   await expect(rotor(page, 'Middle')).toHaveAttribute('aria-valuetext', 'Z')
+})
+
+test('3D: clicking the pull on the hatch opens it, and clicking it again closes it', async ({
+  page,
+}) => {
+  await openMachine(page, '3d')
+  const lidButton = page.getByRole('button', { name: /the lid$/ })
+  let { x, y } = await point3d(page, 'hatch-pull')
+  await page.mouse.click(x, y)
+  await expect(lidButton).toHaveAttribute('aria-expanded', 'true')
+  await settled(page) // the hatch swings up and the camera moves
+  ;({ x, y } = await point3d(page, 'hatch-pull'))
+  await page.mouse.click(x, y)
+  await expect(lidButton).toHaveAttribute('aria-expanded', 'false')
 })
