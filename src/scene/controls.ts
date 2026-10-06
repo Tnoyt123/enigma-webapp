@@ -3,7 +3,7 @@ import { Vector3 } from 'three'
 import { machineStore } from '../state/machineStore.ts'
 import { DRAG_THRESHOLD } from '../ui2d/dragging.ts'
 import { CAMERA_PRESETS, type CameraPreset } from './layout3d.ts'
-import { MAX_STEP } from './motion.ts'
+import { currentFrameStep } from './motion.ts'
 
 /** The scene's camera controls, shared so machine parts can pause orbiting while being pressed. */
 let controls: CameraControls | null = null
@@ -20,10 +20,10 @@ export function registerControls(instance: CameraControls | null): void {
   controls = instance
   if (instance && !tuned.has(instance)) {
     tuned.add(instance)
-    // Like every other motion, the camera advances at most MAX_STEP a frame, so it glides
-    // rather than jumping after an idle pause or a slow frame (see MAX_STEP).
+    // Like every other motion, the camera advances by the frame clock's step, so it glides
+    // rather than jumping after an idle pause or a slow frame (see useFrameClock).
     const update = instance.update.bind(instance)
-    instance.update = (delta: number) => update(Math.min(delta, MAX_STEP))
+    instance.update = () => update(currentFrameStep())
     // The camera's easing creeps toward its destination for seconds after it looks still, and
     // the canvas keeps drawing all that time. Once it is within REST_THRESHOLD, finish the move.
     instance.restThreshold = REST_THRESHOLD

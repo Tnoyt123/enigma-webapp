@@ -8,6 +8,7 @@ import { registerControls } from './controls.ts'
 import { E2EHooks } from './E2EHooks.tsx'
 import { Hatch3D } from './Hatch3D.tsx'
 import { Keys3D } from './Keys3D.tsx'
+import { useFrameClock } from './motion.ts'
 import { Lamps3D } from './Lamps3D.tsx'
 import { Plugboard3D } from './Plugboard3D.tsx'
 import { Rotors3D } from './Rotors3D.tsx'
@@ -16,6 +17,7 @@ import { StudioLighting } from './StudioLighting.tsx'
 import { XrayRefresh } from './XrayRefresh.tsx'
 
 export function Scene() {
+  useFrameClock()
   return (
     // Selection collects the objects wrapped in <Select enabled> for the Outline effect.
     <Selection>

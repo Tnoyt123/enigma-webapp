@@ -16,11 +16,28 @@ export function shortestAngle(delta: number): number {
 }
 
 /**
- * Longest time step an animation advances in one frame. The canvas renders on demand, so the
- * first frame after a pause reports the whole idle time (and a frame that compiles new shaders
- * can take hundreds of milliseconds); without a cap, a motion would jump to its end.
+ * The time step every animation advances by this frame. The canvas renders on demand, so the
+ * first frame after a pause reports the whole idle time, and a frame that compiles new shaders can
+ * take hundreds of milliseconds; taken at face value, a motion would jump to its end. So a frame
+ * far longer than this device's usual frame counts as only a little longer than usual. The usual
+ * frame time is learned as frames go by, so a slow device (or a software GPU) still animates at
+ * its own pace instead of being made to draw extra frames.
  */
-export const MAX_STEP = 1 / 30
+let frameStep = 1 / 60
+let usualFrame = 1 / 60
+/** A frame longer than this many usual frames is an outlier. */
+const OUTLIER = 3
+
+/** This frame's time step, for animations driven outside useSettlingFrame (the camera). */
+export const currentFrameStep = () => frameStep
+
+/** Measures each frame's time step before anything animates. Call once, inside the canvas. */
+export function useFrameClock(): void {
+  useFrame((_, dt) => {
+    frameStep = Math.min(dt, usualFrame * OUTLIER)
+    usualFrame += (frameStep - usualFrame) * 0.2
+  }, -2) // before the camera controls (-1) and every animation (0)
+}
 
 /**
  * The canvas renders on demand. This runs `step` every frame while something is moving and asks
@@ -30,8 +47,8 @@ export function useSettlingFrame(step: (dt: number) => boolean, deps: readonly u
   const invalidate = useThree((s) => s.invalidate)
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `deps` are the animation's targets
   useEffect(() => invalidate(), deps)
-  useFrame((_, dt) => {
-    if (step(Math.min(dt, MAX_STEP))) invalidate()
+  useFrame(() => {
+    if (step(frameStep)) invalidate()
   })
 }
 
