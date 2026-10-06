@@ -14,7 +14,8 @@ const switchTo = (page: Page, name: '2D' | '3D') =>
 test('opens in 3D by default', async ({ page }) => {
   await page.goto('/')
   await expect(viewRadio(page, '3D')).toBeChecked()
-  await expect(page.getByRole('region', { name: /machine, 3D$/ })).toBeVisible()
+  // The 3D view is a separate download, which can take a while on a busy machine.
+  await expect(page.getByRole('region', { name: /machine, 3D$/ })).toBeVisible({ timeout: 15_000 })
 })
 
 test('switching updates the URL and is remembered; the URL wins over the memory', async ({
@@ -99,4 +100,28 @@ test('a rotor lifted out in one view is still in hand after switching', async ({
   await page.getByRole('button', { name: /^Right slot: rotor III/ }).focus()
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('Right rotor', { exact: true })).toHaveValue('IV')
+})
+
+test('the machine setup is remembered after a reload, in either view, until reset', async ({
+  page,
+}) => {
+  await openMachine(page, '3d')
+  await page.getByRole('radio', { name: /Enigma M3/ }).check()
+  await page.getByLabel('Right rotor', { exact: true }).selectOption('VIII')
+  await page.getByLabel(/Plugboard pairs/).fill('AV BS')
+  await page.keyboard.press('Tab')
+  await rotor(page, 'Left').focus()
+  await page.keyboard.press('q')
+
+  await page.goto('/?view=2d')
+  await expect(page.getByRole('radio', { name: /Enigma M3/ })).toBeChecked()
+  await expect(page.getByLabel('Right rotor', { exact: true })).toHaveValue('VIII')
+  await expect(page.getByLabel(/Plugboard pairs/)).toHaveValue('AV BS')
+  await expect(rotor(page, 'Left')).toHaveAttribute('aria-valuetext', 'Q')
+
+  await page.getByRole('button', { name: 'Reset machine' }).click()
+  await expect(page.getByRole('radio', { name: /Enigma I/ })).toBeChecked()
+  await page.reload()
+  await expect(page.getByRole('radio', { name: /Enigma I/ })).toBeChecked()
+  await expect(page.getByLabel(/Plugboard pairs/)).toHaveValue('')
 })

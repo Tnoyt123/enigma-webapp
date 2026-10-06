@@ -7,10 +7,21 @@ import { announce } from '../ui2d/announce.ts'
 import { trackPointer } from '../ui2d/dragging.ts'
 import { CABLE_COLORS, KEY_ROWS } from '../ui2d/layout.ts'
 import { setOrbitEnabled } from './controls.ts'
+import { Instanced } from './Instanced.tsx'
 import { CASE, socketAt } from './layout3d.ts'
 import { letterTexture } from './textures.ts'
 
 const LETTERS = KEY_ROWS.join('')
+
+/** The two holes of every socket, one above the other as on the real machines. */
+const HOLES = [...LETTERS].flatMap((letter) => {
+  const [x, y, z] = socketAt(letter)
+  return [-0.108, 0.108].map((dy) => [x, y + dy, z + 0.01] as const)
+})
+const RINGS = [...LETTERS].map((letter) => {
+  const [x, y, z] = socketAt(letter)
+  return [x, y, z + 0.012] as const
+})
 const store = () => machineStore.getState()
 const say = (text: string | null) => text && announce(text)
 const isPlugged = (letter: string) => store().config.plugboard.some((p) => p.includes(letter))
@@ -96,6 +107,15 @@ export function Plugboard3D() {
 
   return (
     <group>
+      {/* Static parts shared by all sockets: one draw call each. */}
+      <Instanced positions={HOLES}>
+        <circleGeometry args={[0.063, 16]} />
+        <meshBasicMaterial color="#050505" />
+      </Instanced>
+      <Instanced positions={RINGS}>
+        <ringGeometry args={[0.27, 0.306, 32]} />
+        <meshStandardMaterial color="#57534e" metalness={0.6} roughness={0.4} />
+      </Instanced>
       {[...LETTERS].map((letter) => (
         <Socket
           key={letter}
@@ -142,32 +162,29 @@ function Socket({
           roughness={0.9}
         />
       </mesh>
-      {/* The two holes of the socket, one above the other as on the real machines. */}
-      {[-0.108, 0.108].map((dy) => (
-        <mesh key={dy} position={[0, dy, 0.01]}>
-          <circleGeometry args={[0.063, 16]} />
-          <meshBasicMaterial color="#050505" />
+      {selected && (
+        // The selected socket's ring glows amber over the plain (instanced) one.
+        <mesh position={[0, 0, 0.014]}>
+          <ringGeometry args={[0.27, 0.306, 32]} />
+          <meshStandardMaterial
+            color="#fbbf24"
+            emissive="#fbbf24"
+            emissiveIntensity={1.5}
+            metalness={0.6}
+            roughness={0.4}
+          />
         </mesh>
-      ))}
-      <mesh position={[0, 0, 0.012]}>
-        <ringGeometry args={[0.27, 0.306, 32]} />
-        <meshStandardMaterial
-          color={selected ? '#fbbf24' : '#57534e'}
-          emissive={selected ? '#fbbf24' : '#000'}
-          emissiveIntensity={selected ? 1.5 : 0}
-          metalness={0.6}
-          roughness={0.4}
-        />
-      </mesh>
+      )}
       {plugColor && (
         <mesh position={[0, 0, 0.18]} rotation-x={Math.PI / 2}>
           <cylinderGeometry args={[0.135, 0.153, 0.3, 20]} />
           <meshStandardMaterial color={plugColor} roughness={0.5} />
         </mesh>
       )}
-      {/* Generous invisible hit target. */}
+      {/* Generous invisible hit target: not drawn, but still hit-tested. */}
       <mesh
         name={`socket-${letter}`}
+        visible={false}
         position={[0, 0.12, 0.05]}
         onPointerDown={(e) => onPointerDown(e, letter)}
         onPointerOver={(e) => {
@@ -177,7 +194,6 @@ function Socket({
         onPointerOut={() => setHovered(false)}
       >
         <planeGeometry args={[0.8, 0.8]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   )

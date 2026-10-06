@@ -227,14 +227,28 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
   - **Unit:** round trips for all three procedures, the real Barbarossa header, the bigram table's reciprocity (a property test) and the error messages.
   - **Browser, in both views:** receiving Barbarossa (then trying the indicator on the machine), sending and re-reading a doubled indicator, the M4 naval procedure, sounds per press (with a double step giving three ratchets), mute persisting across a reload, and axe.
 
-### Phase 7 — Mobile, performance, polish, launch
+### Phase 7 — Mobile, performance, polish, launch ✅
 
-- Touch: tap keys, pinch/orbit the camera, long-press to drag cables. An on-screen keyboard fallback is always available.
-- Performance budget: 60 fps on mid-range phones. Instanced keys and lamps, compressed textures (KTX2). Check the 2D initial bundle stays free of three.js.
-- 2D touch targets: get keys and sockets toward 44px on phones, e.g. a landscape layout or a keyboard-focused mode.
-- Final parity audit: the full e2e suite and axe scan pass in both views.
-- Machine settings persisted to `localStorage` (a convenience only); the view choice is already remembered from Phase 3.
-- Lighthouse and axe audits, then deploy.
+- **3D download** cut from 311 to 288 kB gzipped.
+  - Marked `n8ao` and `maath`, which `@react-three/postprocessing` imports but we don't use, as side-effect-free so they're dropped.
+  - Replaced drei's `Environment` (which pulled in EXR/HDR loaders, `fflate` and a gain-map decoder) with three.js's procedural `RoomEnvironment` (`StudioLighting`), with the look matched in screenshots.
+  - The 2D entry bundle is 94 kB gzipped and never loads the 3D chunk.
+- **GPU work per redraw:** draw calls went from 372 to 245.
+  - Socket holes, socket rings and lamp rims are instanced (`Instanced.tsx`), and the selected socket's amber ring is a small overlay.
+  - Invisible hit targets are `visible={false}`, so they're hit-tested but not drawn.
+  - The scene was already rendering on demand.
+  - KTX2 textures don't apply: every texture is drawn on a canvas at runtime.
+- **Saving:** the machine setup, rotor positions and box rings are saved to `localStorage` (`src/state/persist.ts`), validated on load (corrupt or invalid saves fall back to the defaults), with **Reset machine** on the key sheet. The view and sound were already remembered.
+- **Touch (2D):** one shared gesture (`startPress`).
+  - A tap is a click, a finger that moves straight away scrolls the page, and a long press (350 ms) starts a drag, after which scrolling is blocked. The plugboard and rotor bay no longer trap scrolling.
+  - Keys press after a 90 ms rest or on a clean tap, never during a scroll.
+  - 3D keeps its own gestures: tap, one-finger orbit, pinch zoom.
+- **Touch targets (2D):** keys are 36 px on a 412 px phone and 27 px on a 320 px one, above the 24 px minimum in WCAG 2.2 AA, with no sideways scroll. 44 px isn't possible with nine keys across a phone in portrait.
+- **CI:** actions updated to their Node 24 majors (checkout/setup-node/upload-artifact v7, upload-pages-artifact v5, deploy-pages v5), after checking every input we use still exists.
+- **Lighthouse** (mobile, production build):
+  - **2D:** performance 90, accessibility 100, best practices 100, SEO 100 (after adding a meta description and `robots.txt`).
+  - **3D:** accessibility, best practices and SEO are also 100. Performance scores 57 in headless Lighthouse because three.js compiles and renders in software on a 4×-throttled CPU (8.3 s blocking time). First paint, at 2.5 s, matches 2D.
+- **Parity audit:** the full Playwright suite (152 tests, plus 6 touch tests that run only on mobile) and the axe scans pass in both views. New tests cover saving across reloads and reset, and real touch gestures through the DevTools protocol (tap, swipes that scroll, long-press drags). The swipe tests fail against the old code.
 
 ---
 

@@ -254,6 +254,7 @@ function SlotRotor({
         // With the lid open, the whole slot is a pick-up / drop target.
         <mesh
           name={`rotor-slot-${slot}`}
+          visible={false} // a hit target only: hit-tested but not drawn
           position={[-ROTOR.wheelWidth / 2, lifted ? LIFT / 2 : 0, 0]}
           onPointerDown={(e) => {
             if (e.button !== 0) return
@@ -284,7 +285,6 @@ function SlotRotor({
           <boxGeometry
             args={[ringWidth + ROTOR.wheelWidth + 0.1, 2.4 + (lifted ? LIFT : 0), 2.4]}
           />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
     </group>
@@ -390,6 +390,7 @@ function RotorBox3D() {
       </mesh>
       <mesh
         name="rotor-box"
+        visible={false}
         position={[cx, 0.4, 0]}
         onPointerOver={() => store().hand && hoverTarget('box', true)}
         onPointerOut={() => hoverTarget('box', false)}
@@ -401,7 +402,6 @@ function RotorBox3D() {
         }}
       >
         <boxGeometry args={[width, 3, 2.8]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       {spares.map((rotor, i) => (
         <group key={rotor} position={[boxRotorX(i), 0, 0]}>
@@ -417,6 +417,7 @@ function RotorBox3D() {
             {carriedRotor !== rotor && <Label text={rotor} y={ROTOR.radius + 0.45} />}
             <mesh
               name={`box-rotor-${rotor}`}
+              visible={false}
               // Hit shape matches the rotor, so a neighbour's hit area never covers it.
               rotation-z={-Math.PI / 2}
               onPointerDown={(e) => {
@@ -434,7 +435,6 @@ function RotorBox3D() {
                   24,
                 ]}
               />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
           </Lift>
         </group>

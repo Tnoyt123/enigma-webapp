@@ -3,7 +3,7 @@ import { REFLECTORS, toLetter, type RotorId } from '../engine/index.ts'
 import { boxRotors, fitsSlot, machineStore, useMachine } from '../state/machineStore.ts'
 import { slotNames } from '../teaching/explain.ts'
 import { announce } from './announce.ts'
-import { dropTargetAt, trackPointer } from './dragging.ts'
+import { dropTargetAt, startPress } from './dragging.ts'
 
 const rotorFace =
   'flex w-14 flex-col items-center gap-0.5 rounded-md border-2 bg-stone-200 px-1 py-2 font-mono text-stone-900 shadow'
@@ -36,12 +36,30 @@ export function RotorBay({ compact = false }: { compact?: boolean }) {
   const store = () => machineStore.getState()
 
   /** Press on a rotor: pick it up and follow the pointer until it is dropped. */
-  const startDrag = (e: ReactPointerEvent, rotor: RotorId) => {
-    trackPointer(e, {
-      onMove: (ev, dragged) => dragged && setGhost({ x: ev.clientX, y: ev.clientY, rotor }),
-      onUp: (ev, dragged) => {
+  /**
+   * Press on a rotor in a slot or the box. A tap picks it up (or puts the held rotor down); a
+   * drag (mouse, or touch after a long press) carries it under the pointer to wherever it's dropped.
+   */
+  const press = (e: ReactPointerEvent, pickUp: () => void, onTap: () => void) => {
+    if (e.button !== 0) return
+    if (e.pointerType !== 'touch') e.preventDefault() // touch: leave the page free to scroll
+    const follow = (ev: PointerEvent) => {
+      const rotor = store().hand?.rotor
+      if (rotor) setGhost({ x: ev.clientX, y: ev.clientY, rotor })
+      // Touch pointers stay captured by the pressed element, so find the slot under the finger.
+      const slot = dropTargetAt(ev.clientX, ev.clientY, 'rotor-slot')
+      setHoverSlot(slot ? Number(slot.dataset.rotorSlot) : null)
+    }
+    startPress(e.nativeEvent, {
+      onTap,
+      onDragStart: (ev) => {
+        pickUp()
+        follow(ev)
+      },
+      onDragMove: follow,
+      onDrop: (ev) => {
         setGhost(null)
-        if (!dragged) return // a click: keep holding it until the next click
+        setHoverSlot(null)
         const slot = dropTargetAt(ev.clientX, ev.clientY, 'rotor-slot')
         if (slot) say(store().placeRotor(Number(slot.dataset.rotorSlot)))
         else say(store().returnRotor()) // dropped on the box or nowhere: back where it came from
@@ -49,21 +67,25 @@ export function RotorBay({ compact = false }: { compact?: boolean }) {
     })
   }
 
-  const onSlotPointerDown = (e: ReactPointerEvent, slot: number) => {
-    if (e.button !== 0) return
-    e.preventDefault()
-    if (store().hand) return say(store().placeRotor(slot))
-    say(store().liftRotor(slot))
-    startDrag(e, config.rotors[slot])
-  }
+  const onSlotPointerDown = (e: ReactPointerEvent, slot: number) =>
+    press(
+      e,
+      () => {
+        if (!store().hand) say(store().liftRotor(slot))
+      },
+      () => say(store().hand ? store().placeRotor(slot) : store().liftRotor(slot)),
+    )
 
-  const onBoxPointerDown = (e: ReactPointerEvent, rotor: RotorId) => {
-    if (e.button !== 0) return
-    e.preventDefault()
+  const pickFromBox = (rotor: RotorId) => {
     if (store().hand) store().returnRotor()
     say(store().liftRotor('box', rotor))
-    startDrag(e, rotor)
   }
+  const onBoxPointerDown = (e: ReactPointerEvent, rotor: RotorId) =>
+    press(
+      e,
+      () => pickFromBox(rotor),
+      () => pickFromBox(rotor),
+    )
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && store().hand) {
@@ -97,7 +119,7 @@ export function RotorBay({ compact = false }: { compact?: boolean }) {
                   if (e.detail !== 0) return // pointer presses are handled on pointer down
                   say(store().hand ? store().placeRotor(slot) : store().liftRotor(slot))
                 }}
-                className={`${rotorFace} ${focusRing} touch-none data-[drop-target=fits]:ring-4 data-[drop-target=fits]:ring-yellow-400 data-[drop-target=refused]:ring-4 data-[drop-target=refused]:ring-red-500 ${
+                className={`${rotorFace} ${focusRing} touch-pan-y data-[drop-target=fits]:ring-4 data-[drop-target=fits]:ring-yellow-400 data-[drop-target=refused]:ring-4 data-[drop-target=refused]:ring-red-500 ${
                   lifted
                     ? 'border-dashed border-stone-500 bg-transparent text-stone-400 shadow-none'
                     : hand
@@ -153,7 +175,7 @@ export function RotorBay({ compact = false }: { compact?: boolean }) {
                 if (store().hand) store().returnRotor()
                 say(store().liftRotor('box', rotor))
               }}
-              className={`${rotorFace} ${focusRing} touch-none py-1 ${
+              className={`${rotorFace} ${focusRing} touch-pan-y py-1 ${
                 held ? 'border-amber-400 bg-amber-100' : 'border-stone-500'
               }`}
             >

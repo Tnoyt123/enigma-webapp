@@ -1,7 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { MAX_CABLES, machineStore, useMachine } from '../state/machineStore.ts'
 import { announce } from './announce.ts'
-import { dropTargetAt, trackPointer } from './dragging.ts'
+import { dropTargetAt, startPress } from './dragging.ts'
 import { CABLE_COLORS, GRID_HEIGHT, GRID_WIDTH, KEY_ROWS, keyPosition } from './layout.ts'
 import { useRovingFocus } from './useRovingFocus.ts'
 
@@ -31,37 +31,27 @@ export function Plugboard() {
    */
   const onSocketPointerDown = (e: ReactPointerEvent, letter: string) => {
     if (e.button !== 0) return
-    e.preventDefault()
-    const plugged = pairs.some((p) => p.includes(letter))
-    const pending = store().plugSelection
-    if (!plugged && pending && pending !== letter) return say(store().activateSocket(letter))
-    if (!plugged && !pending) say(store().activateSocket(letter))
-    let pulled = false
-    trackPointer(e, {
-      onMove: (ev, dragged) => {
-        if (!dragged) return
-        if (plugged && !pulled) {
-          pulled = true
-          say(store().pullPlug(letter))
+    if (e.pointerType !== 'touch') e.preventDefault() // touch: leave the page free to scroll
+    const isPlugged = (l: string) => store().config.plugboard.some((p) => p.includes(l))
+    startPress(e.nativeEvent, {
+      onTap: () => say(store().activateSocket(letter)),
+      onDragStart: (ev) => {
+        if (isPlugged(letter)) {
+          say(store().pullPlug(letter)) // drag the plug out; the cable stays in its partner
+        } else if (store().plugSelection !== letter) {
+          store().cancelPlug()
+          say(store().activateSocket(letter)) // a new cable from this socket
         }
         setLoose(toGrid(ev.clientX, ev.clientY))
       },
-      onUp: (ev, dragged) => {
+      onDragMove: (ev) => setLoose(toGrid(ev.clientX, ev.clientY)),
+      onDrop: (ev) => {
         setLoose(null)
-        if (!dragged) {
-          if (plugged) say(store().activateSocket(letter)) // click on a plugged socket: unplug
-          return
-        }
         const target = dropTargetAt(ev.clientX, ev.clientY, 'socket')?.dataset.socket
         const from = store().plugSelection
-        if (
-          target &&
-          from &&
-          target !== from &&
-          !store().config.plugboard.some((p) => p.includes(target))
-        ) {
+        if (target && from && target !== from && !isPlugged(target)) {
           say(store().activateSocket(target))
-        } else if (target !== letter) {
+        } else if (target !== from) {
           const message = store().cancelPlug()
           if (message) say(message)
         }
@@ -95,7 +85,7 @@ export function Plugboard() {
         data-own-letter-keys
         onKeyDown={onKeyDown}
         ref={board}
-        className="relative mx-auto w-full max-w-md touch-none"
+        className="relative mx-auto w-full max-w-md touch-pan-y"
         style={{ aspectRatio: `${GRID_WIDTH} / ${GRID_HEIGHT}` }}
       >
         <svg

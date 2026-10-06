@@ -51,7 +51,8 @@ export function Machine2D() {
         <h2 className="sr-only">Lampboard</h2>
         <Lampboard />
       </div>
-      <div className={panel}>
+      {/* Narrower side padding on phones leaves more room for the keys. */}
+      <div className={`${panel} px-0.5 sm:px-5`}>
         <h2 className="sr-only">Keyboard</h2>
         <Keyboard />
       </div>

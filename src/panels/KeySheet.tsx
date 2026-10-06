@@ -11,6 +11,7 @@ import {
   type RotorId,
 } from '../engine/index.ts'
 import { machineStore, useMachine } from '../state/machineStore.ts'
+import { announce } from '../ui2d/announce.ts'
 import { slotNames } from '../ui2d/layout.ts'
 
 const field =
@@ -138,6 +139,20 @@ export function KeySheet() {
       )}
 
       <PlugboardField />
+
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-stone-300 pt-3 text-xs text-stone-600">
+        <span>Settings are remembered on this device.</span>
+        <button
+          type="button"
+          onClick={() => {
+            machineStore.getState().reset()
+            announce('Machine reset to an Enigma I with rotors I II III at A.')
+          }}
+          className="rounded border border-stone-500 bg-white px-2 py-1 text-sm font-semibold text-stone-900 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600"
+        >
+          Reset machine
+        </button>
+      </div>
     </section>
   )
 }

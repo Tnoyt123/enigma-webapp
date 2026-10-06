@@ -2,11 +2,16 @@ import { useRef } from 'react'
 import { Color, type MeshStandardMaterial } from 'three'
 import { useMachine } from '../state/machineStore.ts'
 import { KEY_ROWS } from '../ui2d/layout.ts'
+import { Instanced } from './Instanced.tsx'
 import { lampAt } from './layout3d.ts'
 import { settle, useSettlingFrame } from './motion.ts'
 import { letterTexture } from './textures.ts'
 
 const LETTERS = KEY_ROWS.join('')
+const RINGS = [...LETTERS].map((letter) => {
+  const [x, y, z] = lampAt(letter)
+  return [x, y + 0.004, z] as const
+})
 const GLOW = new Color('#ffb340')
 
 export function Lamps3D() {
@@ -15,6 +20,11 @@ export function Lamps3D() {
       {[...LETTERS].map((letter) => (
         <Lamp key={letter} letter={letter} />
       ))}
+      {/* The metal rim round every lamp window: one draw call. */}
+      <Instanced positions={RINGS} rotationX={-Math.PI / 2}>
+        <ringGeometry args={[0.36, 0.43, 40]} />
+        <meshStandardMaterial color="#3d3a36" metalness={0.6} roughness={0.4} />
+      </Instanced>
     </group>
   )
 }
@@ -53,10 +63,6 @@ function Lamp({ letter }: { letter: string }) {
           roughness={0.6}
           toneMapped={false}
         />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.004, 0]}>
-        <ringGeometry args={[0.36, 0.43, 40]} />
-        <meshStandardMaterial color="#3d3a36" metalness={0.6} roughness={0.4} />
       </mesh>
     </group>
   )

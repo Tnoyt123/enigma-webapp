@@ -1,5 +1,6 @@
 import { createStore, useStore } from 'zustand'
 import { slotNames } from '../teaching/explain.ts'
+import { loadSavedMachine, rememberMachine } from './persist.ts'
 import {
   compile,
   MODELS,
@@ -67,6 +68,8 @@ export interface MachineState {
   /** Drops a half-plugged cable. Returns the new status, or null if nothing was pending. */
   cancelPlug(): string | null
 
+  /** Back to the initial Enigma I setup, with an empty tape and the lid closed. */
+  reset(): void
   /** Opens or closes the lid. Closing puts back any rotor in hand and ends the ring close-up. */
   setLidOpen(open: boolean): string
   /** Lifts the rotor from a slot, or the given rotor from the box. Returns the new status. */
@@ -126,7 +129,17 @@ export const MAX_CABLES = 13
 const PLUG_PROMPT = 'Select a socket to start a cable.'
 const ROTOR_PROMPT = 'Lift a rotor out of the machine or the box, then choose where to put it.'
 
-export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
+/** The part of the machine worth remembering between visits. */
+export interface SavedMachine {
+  readonly config: MachineConfig
+  readonly positions: readonly number[]
+  readonly boxRings: Readonly<Partial<Record<RotorId, number>>>
+}
+
+export function createMachineStore(
+  config: MachineConfig = INITIAL_CONFIG,
+  saved?: Omit<SavedMachine, 'config'>,
+) {
   return createStore<MachineState>()((set, get) => {
     /** Applies a new configuration (and optionally positions) if it's valid. */
     const apply = (next: MachineConfig, positions = get().positions): string[] => {
@@ -144,7 +157,7 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
     return {
       config,
       machine: compile(config),
-      positions: config.rotors.map(() => 0),
+      positions: saved?.positions ?? config.rotors.map(() => 0),
       lastTrace: null,
       heldKey: null,
       litLamp: null,
@@ -155,7 +168,7 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
       hand: null,
       ringSlot: null,
       rotorMessage: ROTOR_PROMPT,
-      boxRings: {},
+      boxRings: saved?.boxRings ?? {},
 
       setModel(model) {
         const current = get().config
@@ -269,6 +282,25 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
         const message = `Cancelled cable from ${plugSelection}.`
         set({ plugSelection: null, plugMessage: message })
         return message
+      },
+
+      reset() {
+        set({
+          config: INITIAL_CONFIG,
+          machine: compile(INITIAL_CONFIG),
+          positions: INITIAL_CONFIG.rotors.map(() => 0),
+          lastTrace: null,
+          heldKey: null,
+          litLamp: null,
+          tape: EMPTY_TAPE,
+          plugSelection: null,
+          plugMessage: PLUG_PROMPT,
+          lidOpen: false,
+          hand: null,
+          ringSlot: null,
+          rotorMessage: ROTOR_PROMPT,
+          boxRings: {},
+        })
       },
 
       setLidOpen(open) {
@@ -405,7 +437,9 @@ export function createMachineStore(config: MachineConfig = INITIAL_CONFIG) {
 
 export type MachineStore = ReturnType<typeof createMachineStore>
 
-export const machineStore = createMachineStore()
+const saved = loadSavedMachine()
+export const machineStore = saved ? createMachineStore(saved.config, saved) : createMachineStore()
+rememberMachine(machineStore)
 
 export function useMachine<T>(selector: (state: MachineState) => T): T {
   return useStore(machineStore, selector)
