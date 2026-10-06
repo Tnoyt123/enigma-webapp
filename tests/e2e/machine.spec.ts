@@ -235,7 +235,7 @@ test.describe('3D model', () => {
     page,
   }) => {
     // Two camera moves and a remount with every material see-through: slow on a software GPU.
-    test.setTimeout(60_000)
+    test.slow()
     const rotorsCamera = async () => {
       await page.getByRole('button', { name: 'Rotors', exact: true }).click()
       await settled(page) // let the camera settle

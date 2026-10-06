@@ -18,6 +18,7 @@ import {
   releasePointerKey,
 } from './controls.ts'
 import { CAMERA_PRESETS, LID_VIEW, ringCloseUp, rotorStack, type CameraPreset } from './layout3d.ts'
+import { QUALITY } from './quality.ts'
 import { Scene } from './Scene.tsx'
 
 /**
@@ -83,8 +84,7 @@ export default function Machine3D() {
         <Canvas
           // Draw only when something changes: saves battery, and keeps slow (software) GPUs usable.
           frameloop="demand"
-          // Above 1.5× the extra pixels cost far more than they add.
-          dpr={[1, 1.5]}
+          dpr={QUALITY.dpr}
           camera={{ fov: 35, position: CAMERA_PRESETS.operator.position }}
           data-testid="machine-3d-canvas"
           // The case is carved by clipping planes to make the rotor well.

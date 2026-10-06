@@ -11,6 +11,7 @@ import { Keys3D } from './Keys3D.tsx'
 import { useFrameClock } from './motion.ts'
 import { Lamps3D } from './Lamps3D.tsx'
 import { Plugboard3D } from './Plugboard3D.tsx'
+import { QUALITY } from './quality.ts'
 import { Rotors3D } from './Rotors3D.tsx'
 import { SignalPath3D } from './SignalPath3D.tsx'
 import { StudioLighting } from './StudioLighting.tsx'
@@ -44,7 +45,7 @@ export function Scene() {
         maxPolarAngle={Math.PI * 0.62}
       />
       {/* autoClear off: required by Outline. */}
-      <EffectComposer multisampling={4} autoClear={false}>
+      <EffectComposer multisampling={QUALITY.multisampling} autoClear={false}>
         <Bloom luminanceThreshold={1} intensity={1.1} mipmapBlur />
         <DropOutline />
       </EffectComposer>
