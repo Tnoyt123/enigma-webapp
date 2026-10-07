@@ -33,7 +33,7 @@ export function MessageTape() {
 
   return (
     <Panel id="tape" title="Message tape" summary={<TapeSummary />}>
-      <TapeStrip input={tape.input} output={tape.output} />
+      <TapeStrip input={tape.input} output={tape.output} runFrom={tape.runFrom} />
       {/* For screen readers: the typed and lit letters as two lines of five-letter groups. */}
       <dl className="sr-only">
         <dt>Typed</dt>
@@ -97,13 +97,27 @@ export function MessageTape() {
 
 /**
  * The paper tape: five-letter groups, each lit letter printed under the key that lit it, the
- * newest pair marked. It scrolls to keep the newest letters in view.
+ * newest pair marked. It follows the newest letter, or the start of a whole-message run.
  */
-function TapeStrip({ input, output }: { input: string; output: string }) {
+function TapeStrip({
+  input,
+  output,
+  runFrom,
+}: {
+  input: string
+  output: string
+  runFrom: number | null
+}) {
   const strip = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (strip.current) strip.current.scrollTop = strip.current.scrollHeight
-  }, [output])
+    const box = strip.current
+    if (!box) return
+    // After a whole message, show its first line, where reading starts; after a key press,
+    // the newest letter.
+    const first =
+      runFrom === null ? null : box.querySelector<HTMLElement>(`[data-index="${runFrom}"]`)
+    box.scrollTop = first ? first.offsetTop - 8 : box.scrollHeight
+  }, [output, runFrom])
 
   const groups: number[][] = []
   for (let i = 0; i < output.length; i += 5) {
@@ -124,10 +138,10 @@ function TapeStrip({ input, output }: { input: string; output: string }) {
       <div
         ref={strip}
         data-testid="tape-strip"
-        className="max-h-40 overflow-y-auto rounded border border-dashed border-stone-400 bg-[repeating-linear-gradient(to_bottom,#fdf6e3_0,#fdf6e3_3.25rem,#f3e9cc_3.25rem,#f3e9cc_3.3rem)] px-3 py-2 font-mono"
+        className="relative max-h-40 overflow-y-auto rounded border border-dashed border-stone-400 bg-[#fdf6e3] px-3 py-2 font-mono"
       >
         {output.length === 0 ? (
-          <p className="py-2 font-sans text-sm text-stone-500">
+          <p className="py-2 font-sans text-sm text-stone-600">
             Type on the machine: each key and the lamp it lights appear here.
           </p>
         ) : (
@@ -137,12 +151,13 @@ function TapeStrip({ input, output }: { input: string; output: string }) {
                 {group.map((i) => (
                   <span
                     key={i}
+                    data-index={i}
                     data-newest={i === newest || undefined}
                     className={`flex w-[1.35ch] flex-col items-center rounded-sm leading-tight ${
                       i === newest ? 'bg-amber-300' : ''
                     }`}
                   >
-                    <span className="text-xs text-stone-500">{input[i].toLowerCase()}</span>
+                    <span className="text-xs text-stone-600">{input[i].toLowerCase()}</span>
                     <span className="text-lg font-bold text-stone-900">{output[i]}</span>
                   </span>
                 ))}

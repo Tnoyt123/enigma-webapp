@@ -5,6 +5,7 @@ import { ViewSwitch } from './app/ViewSwitch.tsx'
 import { KeySheet } from './panels/KeySheet.tsx'
 import { MessageTape } from './panels/MessageTape.tsx'
 import { RadioPanel } from './panels/RadioPanel.tsx'
+import { RealMessages } from './panels/RealMessages.tsx'
 import { SignalPanel } from './panels/SignalPanel.tsx'
 import { StepCaption } from './panels/StepCaption.tsx'
 import { useView } from './state/viewStore.ts'
@@ -66,6 +67,7 @@ export default function App() {
         <div className="flex flex-col gap-6 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:thin]">
           <SignalPanel />
           <KeySheet />
+          <RealMessages />
           <RadioPanel />
         </div>
       </main>

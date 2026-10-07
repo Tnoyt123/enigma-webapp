@@ -1,5 +1,6 @@
 // Public API of the cipher engine. Pure TypeScript: no DOM, no React, no dependencies.
 export { ALPHABET, mod26, toIndex, toLetter } from './alphabet.ts'
+export { HISTORICAL_MESSAGES, type HistoricalMessage } from './data/messages.ts'
 export { MODELS, type ModelId, type ModelSpec } from './data/models.ts'
 export { REFLECTORS, type ReflectorId, type ReflectorSpec } from './data/reflectors.ts'
 export { ROTORS, type RotorId, type RotorSpec } from './data/rotors.ts'

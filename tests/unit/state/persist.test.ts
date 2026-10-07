@@ -88,7 +88,7 @@ describe('remembering the machine', () => {
       positions: [0, 0, 0],
       heldKey: null,
       lidOpen: false,
-      tape: { input: '', output: '', start: null },
+      tape: { input: '', output: '', start: null, runFrom: null },
     })
   })
 })

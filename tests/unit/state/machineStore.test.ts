@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toGroups } from '../../../src/engine/index.ts'
+import { fromKeySheet, HISTORICAL_MESSAGES, toGroups } from '../../../src/engine/index.ts'
 import { boxRotors, createMachineStore } from '../../../src/state/machineStore.ts'
 
 const fresh = () => createMachineStore().getState
@@ -21,7 +21,7 @@ describe('machine store', () => {
     const store = createMachineStore()
     typeKeys(store, 'AAAAA')
     const { tape, positions } = store.getState()
-    expect(tape).toEqual({ input: 'AAAAA', output: 'BDZGO', start: [0, 0, 0] })
+    expect(tape).toEqual({ input: 'AAAAA', output: 'BDZGO', start: [0, 0, 0], runFrom: null })
     expect(positions).toEqual([0, 0, 5])
   })
 
@@ -283,5 +283,45 @@ describe('setPositions', () => {
     expect(store.getState().positions).toEqual([1, 11, 0])
     expect(store.getState().setPositions('AB')).toHaveLength(1)
     expect(store.getState().setPositions('A1C')).toHaveLength(1)
+  })
+
+  it('loads a whole setup at once, clearing the tape and anything in hand', () => {
+    const store = createMachineStore()
+    const s = store.getState
+    s().keyDown('A')
+    s().keyUp()
+    s().activateSocket('Q')
+    s().setLidOpen(true)
+    s().liftRotor(0)
+
+    const u264 = HISTORICAL_MESSAGES.find((m) => m.id === 'u264')!
+    expect(s().loadSetup(fromKeySheet(u264.key), u264.start)).toEqual([])
+    expect(s().config.model).toBe('M4')
+    expect(s().positions).toEqual([21, 9, 13, 0]) // VJNA
+    expect(s().tape.input).toBe('')
+    expect(s().hand).toBeNull()
+    expect(s().lidOpen).toBe(false)
+    expect(s().plugSelection).toBeNull()
+    expect(s().encipherText(u264.ciphertext)).toBe(u264.plaintext)
+  })
+
+  it('refuses a setup that does not fit, leaving the machine as it was', () => {
+    const s = createMachineStore().getState
+    const before = s().config
+    const problems = s().loadSetup({ ...before, rotors: ['I', 'I', 'III'] }, 'AAA')
+    expect(problems.length).toBeGreaterThan(0)
+    expect(s().config).toBe(before)
+  })
+
+  it('remembers where a whole-message run began on the tape, until the next key press', () => {
+    const s = createMachineStore().getState
+    s().keyDown('A')
+    s().keyUp()
+    s().encipherText('hello world')
+    expect(s().tape.runFrom).toBe(1) // after the one letter typed before
+    expect(s().tape.output).toHaveLength(11)
+    s().keyDown('B')
+    s().keyUp()
+    expect(s().tape.runFrom).toBeNull()
   })
 })

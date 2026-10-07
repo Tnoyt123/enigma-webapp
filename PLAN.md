@@ -110,7 +110,7 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
    - M4 with Beta at A, ring A and thin-B equals M3 with UKW-B.
 4. **Historical vectors:**
    - Enigma I: the 1941 Operation Barbarossa message (rotors II IV V, rings BUL, UKW-B, plugboard AV BS CG DL FU HZ IN KM OW RX).
-   - M4: the U-534 message and other published Kriegsmarine decrypts.
+   - M4: the U-264 message (1942, solved by the M4 Message Breaking Project) and other published Kriegsmarine decrypts.
    - Cross-check against at least one trusted reference simulator for random configurations.
 5. **CI:** the engine tests run on every push. The engine is not "done" until 100% of its tests pass and branch coverage is high.
 
@@ -128,7 +128,7 @@ Model definitions set the constraints: which rotors are allowed, 3 or 4 slots, w
 
 - Data tables, rotor/reflector/plugboard logic, `step()`, `press()` → `Trace`, `EnigmaMachine` wrapper, key-sheet parsing.
 - Model presets with validation errors (e.g. "Rotor VI isn't available on Enigma I").
-- 81 tests, 100% line coverage: data integrity, stepping (incl. double step and the 16,900 period), properties, and three historical messages. They are the Barbarossa 1941 message (Enigma I, including its indicator), the Scharnhorst 1943 message (M3, two-notch rotors) and the U-534 1945 message (M4).
+- 81 tests, 100% line coverage: data integrity, stepping (incl. double step and the 16,900 period), properties, and three historical messages. They are the Barbarossa 1941 message (Enigma I, including its indicator), the Scharnhorst 1943 message (M3, two-notch rotors) and the U-264 1942 message (M4; first mislabelled as U-534).
 - The tests caught an error in the hand-written UKW-B wiring, which is now corrected and verified by the involution test and all three messages.
 
 ### Phase 2 — 2D accessible machine (also the dev harness) ✅

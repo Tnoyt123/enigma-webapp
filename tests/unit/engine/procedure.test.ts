@@ -10,7 +10,7 @@ import {
   sendMessage,
   toGroups,
 } from '../../../src/engine/index.ts'
-import { HISTORICAL_MESSAGES } from './fixtures/historical.ts'
+import { HISTORICAL_MESSAGES } from '../../../src/engine/index.ts'
 
 const barbarossa = HISTORICAL_MESSAGES[0]
 const enigmaI = fromKeySheet(barbarossa.key)

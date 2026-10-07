@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EnigmaMachine, fromKeySheet } from '../../../src/engine/index.ts'
-import { HISTORICAL_MESSAGES } from './fixtures/historical.ts'
+import { HISTORICAL_MESSAGES } from '../../../src/engine/index.ts'
 
 const letters = (s: string) => s.replace(/[^A-Z]/g, '')
 

@@ -21,6 +21,11 @@ export interface Tape {
   readonly output: string
   /** Rotor positions before the first letter on the tape, for "reset to start". */
   readonly start: readonly number[] | null
+  /**
+   * Where the last whole-message run began on the tape, so it can be read from its start;
+   * null once a key is pressed.
+   */
+  readonly runFrom: number | null
 }
 
 export interface MachineState {
@@ -68,6 +73,11 @@ export interface MachineState {
   /** Drops a half-plugged cable. Returns the new status, or null if nothing was pending. */
   cancelPlug(): string | null
 
+  /**
+   * Sets up the whole machine at once, e.g. from a historical key sheet: config and window
+   * letters, with an empty tape, the lid closed and no cable or rotor in hand. Returns problems.
+   */
+  loadSetup(config: MachineConfig, positions: string): string[]
   /** Back to the initial Enigma I setup, with an empty tape and the lid closed. */
   reset(): void
   /** Opens or closes the lid. Closing puts back any rotor in hand and ends the ring close-up. */
@@ -104,7 +114,7 @@ export const INITIAL_CONFIG: MachineConfig = {
   plugboard: [],
 }
 
-const EMPTY_TAPE: Tape = { input: '', output: '', start: null }
+const EMPTY_TAPE: Tape = { input: '', output: '', start: null, runFrom: null }
 
 export interface RotorInHand {
   readonly rotor: RotorId
@@ -284,6 +294,24 @@ export function createMachineStore(
         return message
       },
 
+      loadSetup(next, letters) {
+        const problems = apply(next, [...letters.toUpperCase()].map(toIndex))
+        if (problems.length > 0) return problems
+        set({
+          heldKey: null,
+          litLamp: null,
+          tape: EMPTY_TAPE,
+          plugSelection: null,
+          plugMessage: PLUG_PROMPT,
+          lidOpen: false,
+          hand: null,
+          ringSlot: null,
+          rotorMessage: ROTOR_PROMPT,
+          boxRings: {},
+        })
+        return []
+      },
+
       reset() {
         set({
           config: INITIAL_CONFIG,
@@ -386,6 +414,7 @@ export function createMachineStore(
             input: tape.input + trace.input,
             output: tape.output + trace.output,
             start: tape.start ?? positions,
+            runFrom: null,
           },
         })
         return trace
@@ -417,6 +446,7 @@ export function createMachineStore(
               input: tape.input + input,
               output: tape.output + output,
               start: tape.start ?? start,
+              runFrom: tape.output.length,
             },
           })
         }

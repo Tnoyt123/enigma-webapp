@@ -126,3 +126,25 @@ test('step by step is captioned right under the machine, even with its panel fol
   await page.getByRole('switch', { name: /Step by step/ }).uncheck()
   await expect(caption).toHaveCount(0)
 })
+
+test('after a whole message the tape shows its first line; after a key, the newest letter', async ({
+  page,
+}) => {
+  await openMachine(page, '2d')
+  const strip = page.getByTestId('tape-strip')
+  await page.keyboard.press('q') // something already on the tape
+  await page.getByLabel('Encipher or decipher a whole message').fill('ABCDE'.repeat(60)) // many lines: longer than the strip
+  await page.getByRole('button', { name: 'Run through machine' }).click()
+
+  const firstOfRun = strip.locator('[data-index="1"]')
+  await expect(firstOfRun).toBeInViewport()
+  const scrolled = () => strip.evaluate((el) => el.scrollTop)
+  expect(await scrolled()).toBeLessThan(10) // the run starts on the first line
+
+  await page.locator('header').click()
+  await page.keyboard.press('a')
+  // Scrolled to the end (measured on the strip itself: the page may have scrolled too).
+  await expect
+    .poll(() => strip.evaluate((el) => el.scrollHeight - el.clientHeight - el.scrollTop))
+    .toBeLessThan(2)
+})
