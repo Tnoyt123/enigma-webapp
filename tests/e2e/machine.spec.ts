@@ -222,7 +222,7 @@ test.describe('3D model', () => {
   test('clicking a thumbwheel turns the rotor forward; shift-click turns it back', async ({
     page,
   }) => {
-    const { x, y } = await point3d(page, 'thumbwheel-2')
+    const { x, y } = await point3d(page, 'thumbwheel-grip-2')
     await page.mouse.click(x, y)
     await page.mouse.click(x, y)
     await expect(rotor(page, 'Right')).toHaveAttribute('aria-valuetext', 'C')

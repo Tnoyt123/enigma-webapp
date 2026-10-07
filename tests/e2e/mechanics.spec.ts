@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import {
   boxRotor,
   drag,
@@ -301,7 +301,7 @@ test('2D: drag the ring dial round to change the ring setting', async ({ page })
 
 test('3D: scrolling over a thumbwheel turns it', async ({ page }) => {
   await openMachine(page, '3d')
-  const wheel = await point3d(page, 'thumbwheel-1')
+  const wheel = await point3d(page, 'thumbwheel-grip-1')
   await page.mouse.move(wheel.x, wheel.y)
   await page.mouse.wheel(0, -100)
   await expect(rotor(page, 'Middle')).toHaveAttribute('aria-valuetext', 'B')
@@ -309,6 +309,11 @@ test('3D: scrolling over a thumbwheel turns it', async ({ page }) => {
   await page.mouse.wheel(0, 100)
   await expect(rotor(page, 'Middle')).toHaveAttribute('aria-valuetext', 'Z')
 })
+
+const windows = (page: Page) =>
+  Promise.all(
+    ['Left', 'Middle', 'Right'].map((slot) => rotor(page, slot).getAttribute('aria-valuetext')),
+  )
 
 test('3D: clicking the pull on the hatch opens it, and clicking it again closes it', async ({
   page,
@@ -318,8 +323,23 @@ test('3D: clicking the pull on the hatch opens it, and clicking it again closes 
   let { x, y } = await point3d(page, 'hatch-pull')
   await page.mouse.click(x, y)
   await expect(lidButton).toHaveAttribute('aria-expanded', 'true')
+  // The middle thumbwheel lies under the pull: it must not turn as well.
+  expect(await windows(page)).toEqual(['A', 'A', 'A'])
   await settled(page) // the hatch swings up and the camera moves
   ;({ x, y } = await point3d(page, 'hatch-pull'))
   await page.mouse.click(x, y)
   await expect(lidButton).toHaveAttribute('aria-expanded', 'false')
+  expect(await windows(page)).toEqual(['A', 'A', 'A'])
+})
+
+test('3D: the closed hatch covers the thumbwheels; only their tops turn them', async ({ page }) => {
+  await openMachine(page, '3d')
+  // The middle of a wheel is hidden under the hatch: clicking there hits the hatch.
+  const hidden = await point3d(page, 'thumbwheel-1')
+  await page.mouse.click(hidden.x, hidden.y)
+  expect(await windows(page)).toEqual(['A', 'A', 'A'])
+  // Its top, standing through the slot, still turns it.
+  const top = await point3d(page, 'thumbwheel-grip-1')
+  await page.mouse.click(top.x, top.y)
+  await expect(rotor(page, 'Middle')).toHaveAttribute('aria-valuetext', 'B')
 })

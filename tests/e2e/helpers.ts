@@ -60,7 +60,7 @@ export async function openMachine(page: Page, view: View) {
   }
 }
 
-/** Page coordinates of a named part of the 3D model (e.g. "key-A", "socket-V", "thumbwheel-2"). */
+/** Page coordinates of a named part of the 3D model (e.g. "key-A", "socket-V", "thumbwheel-grip-2"). */
 export async function point3d(page: Page, name: string) {
   // The canvas renders on demand: let it draw the latest change first, because pointer hit
   // tests use where objects were last drawn (a part that just appeared isn't hittable until then).
@@ -162,7 +162,8 @@ export const socket = (letter: string) => ({
 })
 export const thumbwheel = (slot: number, slotName: string) => ({
   css: `[role="spinbutton"][aria-label^="${slotName} rotor"]`,
-  name3d: `thumbwheel-${slot}`,
+  // The top of the wheel: the rest is under the closed hatch, which blocks the pointer.
+  name3d: `thumbwheel-grip-${slot}`,
 })
 
 /** Opens the lid and waits for the camera (3D) to settle on the rotors. */

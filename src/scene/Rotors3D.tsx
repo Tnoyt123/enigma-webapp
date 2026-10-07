@@ -248,6 +248,15 @@ function SlotRotor({
           </mesh>
         </group>
         {lidOpen && !carried && <Label text={rotor} y={ROTOR.wheelRadius + 0.45} />}
+        {/* Marks the top of the thumbwheel, the part standing through the closed hatch, for
+            browser tests to aim at. Drawn and hit-tested by nothing. */}
+        <mesh
+          name={`thumbwheel-grip-${slot}`}
+          visible={false}
+          position={[-(ringWidth + ROTOR.wheelWidth) / 2, ROTOR.wheelRadius - 0.05, 0]}
+        >
+          <boxGeometry args={[0.01, 0.01, 0.01]} />
+        </mesh>
       </Lift>
       {!lifted && <WindowFrame width={ringWidth} glow={glow} />}
       {lidOpen && (

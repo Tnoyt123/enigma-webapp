@@ -1,4 +1,5 @@
 import { useCursor } from '@react-three/drei'
+import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ExtrudeGeometry, Path, Shape, type Group } from 'three'
 import { ROTORS } from '../engine/index.ts'
@@ -12,6 +13,23 @@ import { xrayProps } from './xray.ts'
 const CRINKLE = '#1f1c19'
 const STEP = (Math.PI * 2) / 26
 const METAL = { color: '#9a958e', metalness: 0.85, roughness: 0.35 } as const
+
+const stop = (e: ThreeEvent<PointerEvent | MouseEvent | WheelEvent>) => e.stopPropagation()
+
+/**
+ * Pointer handlers that keep events from reaching whatever is behind: the closed hatch hides
+ * most of each thumbwheel, so pressing, hovering or scrolling on the hatch (or on its pull)
+ * must not turn the rotor underneath. Only the part of a wheel standing through its slot works.
+ */
+const BLOCK = {
+  onPointerDown: stop,
+  onPointerUp: stop,
+  onPointerMove: stop,
+  onPointerOver: stop,
+  onWheel: stop,
+  onContextMenu: stop,
+  onClick: stop,
+}
 
 /** Depth of the hatch, from the hinge to its front edge. */
 const LENGTH = HATCH.frontZ - HATCH.hingeZ
@@ -60,7 +78,7 @@ export function Hatch3D() {
       </mesh>
       <group ref={hinge} name="hatch-lid" position={[0, 0, HATCH.hingeZ]} rotation-x={startAngle}>
         {/* The plate, extruded downward from the deck surface. */}
-        <mesh geometry={top} rotation-x={Math.PI / 2}>
+        <mesh geometry={top} rotation-x={Math.PI / 2} {...(lidOpen ? {} : BLOCK)}>
           <meshStandardMaterial color={CRINKLE} roughness={0.95} {...xrayProps(xray, 0.25)} />
         </mesh>
         {/* Finger pull: a metal tongue overhanging the front edge, so it shows from the
@@ -79,6 +97,7 @@ export function Hatch3D() {
           name="hatch-pull"
           visible={false} // a hit target only, roomier than the pull itself
           position={[0, 0.05, LENGTH]}
+          {...BLOCK}
           onClick={(e) => {
             e.stopPropagation()
             announce(machineStore.getState().setLidOpen(!machineStore.getState().lidOpen))
