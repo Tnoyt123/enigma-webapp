@@ -6,6 +6,7 @@ import { KeySheet } from './panels/KeySheet.tsx'
 import { MessageTape } from './panels/MessageTape.tsx'
 import { RadioPanel } from './panels/RadioPanel.tsx'
 import { SignalPanel } from './panels/SignalPanel.tsx'
+import { StepCaption } from './panels/StepCaption.tsx'
 import { useView } from './state/viewStore.ts'
 import { LiveAnnouncer } from './ui2d/LiveAnnouncer.tsx'
 import { Machine2D } from './ui2d/Machine2D.tsx'
@@ -48,7 +49,7 @@ export default function App() {
         </div>
       )}
       <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        {/* The machine, with the tape it types onto right under it. */}
+        {/* The machine, the step-by-step caption, and the tape it types onto, right under it. */}
         <div className="flex min-w-0 flex-col gap-6">
           {view === '3d' ? (
             // While the 3D code downloads, the 2D machine stays usable.
@@ -58,6 +59,7 @@ export default function App() {
           ) : (
             <Machine2D />
           )}
+          <StepCaption />
           <MessageTape />
         </div>
         {/* On wide screens the panels scroll on their own, so the machine stays in view. */}

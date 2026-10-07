@@ -87,3 +87,42 @@ test('on a wide screen the panels scroll by themselves and the machine stays in 
   await expect(page.getByRole('button', { name: 'Prepare message' })).toBeInViewport()
   await expect(page.getByRole('region', { name: /machine$/ })).toBeInViewport({ ratio: 0.5 })
 })
+
+test('the tape strip prints each lit letter under its key and marks the newest', async ({
+  page,
+}) => {
+  await openMachine(page, '2d')
+  const strip = page.getByTestId('tape-strip')
+  await expect(strip).toContainText('Type on the machine')
+  for (const key of 'aaaaaa') await page.keyboard.press(key) // AAA → BDZGO W
+  await expect(page.getByTestId('tape-output')).toHaveText('BDZGO W')
+  const newest = strip.locator('[data-newest]')
+  await expect(newest).toHaveCount(1)
+  await expect(newest).toHaveText('aW')
+  // Column by column: each key with the lamp it lit.
+  await expect(strip).toHaveText('aBaDaZaGaOaW')
+})
+
+test('step by step is captioned right under the machine, even with its panel folded', async ({
+  page,
+}) => {
+  await openMachine(page, '2d')
+  await page.getByRole('switch', { name: /Step by step/ }).check()
+  await page.getByRole('button', { name: 'How it works', exact: true }).click()
+  const caption = page.getByRole('region', { name: 'Step by step' })
+  await expect(caption).toContainText('Press a key')
+  await page.locator('header').click()
+  await page.keyboard.press('a')
+  await expect(page.getByTestId('current-step')).toContainText('Key A pressed: the rotors step')
+  await caption.getByRole('button', { name: 'Next step' }).click()
+  await expect(page.getByTestId('step-position')).toHaveText('Step 2 of 13')
+
+  const machine = await page.getByRole('region', { name: /machine$/ }).boundingBox()
+  const box = await caption.boundingBox()
+  expect(box!.y).toBeGreaterThan(machine!.y + machine!.height)
+  expect(box!.y).toBeLessThan(machine!.y + machine!.height + 40)
+
+  await page.getByRole('button', { name: 'How it works', exact: true }).click()
+  await page.getByRole('switch', { name: /Step by step/ }).uncheck()
+  await expect(caption).toHaveCount(0)
+})

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { toGroups, toLetter } from '../engine/index.ts'
 import { machineStore, useMachine } from '../state/machineStore.ts'
 import { announce } from '../ui2d/announce.ts'
@@ -33,29 +33,13 @@ export function MessageTape() {
 
   return (
     <Panel id="tape" title="Message tape" summary={<TapeSummary />}>
-      <dl className="mt-2 flex flex-col gap-2 font-mono text-sm">
-        <div>
-          <dt className="font-sans font-semibold">Typed</dt>
-          <dd
-            data-testid="tape-input"
-            tabIndex={0}
-            className="max-h-24 overflow-y-auto break-words focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600"
-          >
-            {toGroups(tape.input) || <span className="font-sans text-stone-600">Nothing yet.</span>}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-sans font-semibold">Lit</dt>
-          <dd
-            data-testid="tape-output"
-            tabIndex={0}
-            className="max-h-24 overflow-y-auto break-words focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600"
-          >
-            {toGroups(tape.output) || (
-              <span className="font-sans text-stone-600">Nothing yet.</span>
-            )}
-          </dd>
-        </div>
+      <TapeStrip input={tape.input} output={tape.output} />
+      {/* For screen readers: the typed and lit letters as two lines of five-letter groups. */}
+      <dl className="sr-only">
+        <dt>Typed</dt>
+        <dd data-testid="tape-input">{toGroups(tape.input) || 'Nothing yet.'}</dd>
+        <dt>Lit</dt>
+        <dd data-testid="tape-output">{toGroups(tape.output) || 'Nothing yet.'}</dd>
       </dl>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -108,6 +92,66 @@ export function MessageTape() {
         </button>
       </form>
     </Panel>
+  )
+}
+
+/**
+ * The paper tape: five-letter groups, each lit letter printed under the key that lit it, the
+ * newest pair marked. It scrolls to keep the newest letters in view.
+ */
+function TapeStrip({ input, output }: { input: string; output: string }) {
+  const strip = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (strip.current) strip.current.scrollTop = strip.current.scrollHeight
+  }, [output])
+
+  const groups: number[][] = []
+  for (let i = 0; i < output.length; i += 5) {
+    groups.push(Array.from({ length: Math.min(5, output.length - i) }, (_, j) => i + j))
+  }
+  const newest = output.length - 1
+
+  return (
+    <div aria-hidden="true" className="mt-2">
+      <div className="mb-1 flex gap-4 text-xs text-stone-600">
+        <span>
+          <span className="font-mono">abc</span> typed
+        </span>
+        <span>
+          <span className="font-mono font-bold text-stone-900">ABC</span> lit
+        </span>
+      </div>
+      <div
+        ref={strip}
+        data-testid="tape-strip"
+        className="max-h-40 overflow-y-auto rounded border border-dashed border-stone-400 bg-[repeating-linear-gradient(to_bottom,#fdf6e3_0,#fdf6e3_3.25rem,#f3e9cc_3.25rem,#f3e9cc_3.3rem)] px-3 py-2 font-mono"
+      >
+        {output.length === 0 ? (
+          <p className="py-2 font-sans text-sm text-stone-500">
+            Type on the machine: each key and the lamp it lights appear here.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {groups.map((group) => (
+              <div key={group[0]} className="flex">
+                {group.map((i) => (
+                  <span
+                    key={i}
+                    data-newest={i === newest || undefined}
+                    className={`flex w-[1.35ch] flex-col items-center rounded-sm leading-tight ${
+                      i === newest ? 'bg-amber-300' : ''
+                    }`}
+                  >
+                    <span className="text-xs text-stone-500">{input[i].toLowerCase()}</span>
+                    <span className="text-lg font-bold text-stone-900">{output[i]}</span>
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
