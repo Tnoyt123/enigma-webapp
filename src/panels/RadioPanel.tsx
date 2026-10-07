@@ -12,6 +12,7 @@ import {
 } from '../engine/index.ts'
 import { machineStore, useMachine } from '../state/machineStore.ts'
 import { announce } from '../ui2d/announce.ts'
+import { Panel } from './Panel.tsx'
 
 const button =
   'rounded border border-stone-500 bg-white px-3 py-1 text-sm font-semibold text-stone-900 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600'
@@ -42,14 +43,7 @@ export function RadioPanel() {
   const ids = { send: useId(), receive: useId() }
 
   return (
-    <section
-      aria-labelledby="radio-heading"
-      className="rounded-xl bg-amber-50 p-4 text-stone-900 shadow-lg"
-    >
-      <h2 id="radio-heading" className="font-serif text-xl font-bold">
-        Radio message
-      </h2>
-
+    <Panel id="radio" title="Radio message">
       <label className="mt-2 flex flex-col gap-1 text-sm">
         <span className="font-semibold">Procedure</span>
         <select
@@ -93,7 +87,7 @@ export function RadioPanel() {
           <ReceiveForm key={procedure} procedure={procedure} />
         )}
       </div>
-    </section>
+    </Panel>
   )
 }
 

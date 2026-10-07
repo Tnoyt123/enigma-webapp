@@ -73,7 +73,7 @@ export default function Machine3D() {
   return (
     <section
       aria-label={`${model} machine, 3D`}
-      className="relative self-start overflow-hidden rounded-2xl border-[6px] border-[#5c3a1e] bg-stone-950 shadow-2xl sm:border-[10px]"
+      className="relative overflow-hidden rounded-2xl border-[6px] border-[#5c3a1e] bg-stone-950 shadow-2xl sm:border-[10px]"
     >
       <div
         ref={canvasBox}

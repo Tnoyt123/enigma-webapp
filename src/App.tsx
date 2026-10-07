@@ -48,18 +48,22 @@ export default function App() {
         </div>
       )}
       <main className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 pb-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        {view === '3d' ? (
-          // While the 3D code downloads, the 2D machine stays usable.
-          <Suspense fallback={<Machine2D />}>
-            <Machine3D />
-          </Suspense>
-        ) : (
-          <Machine2D />
-        )}
-        <div className="flex flex-col gap-6">
+        {/* The machine, with the tape it types onto right under it. */}
+        <div className="flex min-w-0 flex-col gap-6">
+          {view === '3d' ? (
+            // While the 3D code downloads, the 2D machine stays usable.
+            <Suspense fallback={<Machine2D />}>
+              <Machine3D />
+            </Suspense>
+          ) : (
+            <Machine2D />
+          )}
+          <MessageTape />
+        </div>
+        {/* On wide screens the panels scroll on their own, so the machine stays in view. */}
+        <div className="flex flex-col gap-6 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:self-start lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:thin]">
           <SignalPanel />
           <KeySheet />
-          <MessageTape />
           <RadioPanel />
         </div>
       </main>

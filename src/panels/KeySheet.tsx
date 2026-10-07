@@ -13,6 +13,7 @@ import {
 import { machineStore, useMachine } from '../state/machineStore.ts'
 import { announce } from '../ui2d/announce.ts'
 import { slotNames } from '../ui2d/layout.ts'
+import { Panel } from './Panel.tsx'
 
 const field =
   'rounded border border-stone-400 bg-white px-2 py-1 text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600'
@@ -25,14 +26,7 @@ export function KeySheet() {
   const names = slotNames(model.slots)
 
   return (
-    <section
-      aria-labelledby="keysheet-heading"
-      className="rounded-xl bg-amber-50 p-4 text-stone-900 shadow-lg"
-    >
-      <h2 id="keysheet-heading" className="font-serif text-xl font-bold">
-        Key sheet
-      </h2>
-
+    <Panel id="keysheet" title="Key sheet" summary={<KeySheetSummary />}>
       <fieldset className="mt-3">
         <legend className="text-sm font-semibold">Machine</legend>
         <div className="mt-1 flex flex-col gap-1">
@@ -153,7 +147,32 @@ export function KeySheet() {
           Reset machine
         </button>
       </div>
-    </section>
+    </Panel>
+  )
+}
+
+/**
+ * The setup on one line, as a row of a wartime key sheet reads: machine, reflector, rotor
+ * order, ring settings (as numbers) and plugboard pairs. Shown while the key sheet is folded.
+ */
+function KeySheetSummary() {
+  const config = useMachine((s) => s.config)
+  const plugs = config.plugboard
+  const items = [
+    MODELS[config.model].name,
+    REFLECTORS[config.reflector].name,
+    config.rotors.join(' '),
+    `rings ${config.rings.map((r) => String(r + 1).padStart(2, '0')).join(' ')}`,
+    plugs.length === 0
+      ? 'no plugs'
+      : plugs.length <= 6
+        ? `plugs ${plugs.join(' ')}`
+        : `plugs ${plugs.slice(0, 5).join(' ')} … (${plugs.length} pairs)`,
+  ]
+  return (
+    <p data-testid="keysheet-summary" className="font-mono text-xs">
+      {items.join(' · ')}
+    </p>
   )
 }
 

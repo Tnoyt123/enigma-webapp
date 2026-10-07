@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { toGroups, toLetter } from '../engine/index.ts'
 import { machineStore, useMachine } from '../state/machineStore.ts'
 import { announce } from '../ui2d/announce.ts'
+import { Panel } from './Panel.tsx'
 
 const button =
   'rounded border border-stone-500 bg-white px-3 py-1 text-sm font-semibold text-stone-900 hover:bg-stone-100 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600'
@@ -31,14 +32,7 @@ export function MessageTape() {
   }
 
   return (
-    <section
-      aria-labelledby="tape-heading"
-      className="rounded-xl bg-amber-50 p-4 text-stone-900 shadow-lg"
-    >
-      <h2 id="tape-heading" className="font-serif text-xl font-bold">
-        Message tape
-      </h2>
-
+    <Panel id="tape" title="Message tape" summary={<TapeSummary />}>
       <dl className="mt-2 flex flex-col gap-2 font-mono text-sm">
         <div>
           <dt className="font-sans font-semibold">Typed</dt>
@@ -113,6 +107,18 @@ export function MessageTape() {
           Run through machine
         </button>
       </form>
-    </section>
+    </Panel>
+  )
+}
+
+/** Shown while the tape is folded: how much is on it, and the latest lit letters. */
+function TapeSummary() {
+  const tape = useMachine((s) => s.tape)
+  if (!tape.output) return <p>Nothing typed yet.</p>
+  return (
+    <p>
+      {tape.output.length} {tape.output.length === 1 ? 'letter' : 'letters'}; lit:{' '}
+      <span className="font-mono">{toGroups(tape.output.slice(-15))}</span>
+    </p>
   )
 }

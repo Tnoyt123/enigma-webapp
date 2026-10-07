@@ -131,6 +131,7 @@ for (const view of VIEWS) {
       await page.keyboard.press('a')
       // 11 stages from key to lamp, plus the final hop into the lamp.
       await expect.poll(() => pathSegments(page, view)).toBe(12)
+      await page.getByRole('button', { name: 'All 13 steps' }).click()
       await expect(
         page.getByRole('list', { name: 'Path of the current' }).getByRole('listitem'),
       ).toHaveCount(13)
@@ -143,22 +144,22 @@ for (const view of VIEWS) {
       await page.getByRole('switch', { name: /Step by step/ }).check()
       await page.keyboard.press('a')
       const position = page.getByTestId('step-position')
-      const current = page.locator('[aria-current="step"]')
+      const current = page.getByTestId('current-step')
       await expect(position).toHaveText('Step 1 of 13')
       await expect(current).toContainText('Key A pressed: the rotors step')
       await expect.poll(() => pathSegments(page, view)).toBe(0)
 
-      await page.getByRole('button', { name: 'Next ▶' }).click()
-      await page.getByRole('button', { name: 'Next ▶' }).click()
+      await page.getByRole('button', { name: 'Next step' }).click()
+      await page.getByRole('button', { name: 'Next step' }).click()
       await expect(position).toHaveText('Step 3 of 13')
       await expect(current).toContainText('Entry wheel (in)')
       await expect.poll(() => pathSegments(page, view)).toBe(2)
 
-      await page.getByRole('button', { name: '◀ Previous' }).click()
+      await page.getByRole('button', { name: 'Previous step' }).click()
       await expect(current).toContainText('Plugboard (in)')
 
       await page.getByLabel('Speed').selectOption({ label: 'Fast' })
-      await page.getByRole('button', { name: '▶ Play' }).click()
+      await page.getByRole('button', { name: 'Play' }).click()
       await expect(position).toHaveText('Step 13 of 13', { timeout: 10_000 })
       await expect(current).toContainText('Lamp B lights')
       await expect.poll(() => pathSegments(page, view)).toBe(12)
