@@ -3,8 +3,9 @@ import { machineStore } from '../state/machineStore.ts'
 
 /**
  * Machine sounds: the key going down and coming up (a recorded mechanical key, from
- * public/sounds, built by scripts/build-sounds.py), and the ratchet pawls turning each rotor
- * that steps (synthesized with the Web Audio API). Until the recordings have loaded, or if they
+ * public/sounds, built by scripts/build-sounds.py), the ratchet pawls turning each rotor that
+ * steps (synthesized with the Web Audio API), and the lid's hinge (recorded,
+ * public/sounds/lid-hinge.wav). Until the recordings have loaded, or if they
  * can't be, synthesized key sounds stand in.
  */
 
@@ -64,10 +65,11 @@ if (typeof window !== 'undefined' && new URLSearchParams(location.search).has('e
 let context: AudioContext | null = null
 let noise: AudioBuffer | null = null
 
-type Sample = 'key-down' | 'key-up'
+type Sample = 'key-down' | 'key-up' | 'lid-hinge'
 const SAMPLE_URLS: Record<Sample, string> = {
   'key-down': `${import.meta.env.BASE_URL}sounds/key-down.wav`,
   'key-up': `${import.meta.env.BASE_URL}sounds/key-up.wav`,
+  'lid-hinge': `${import.meta.env.BASE_URL}sounds/lid-hinge.wav`,
 }
 const samples: Partial<Record<Sample, AudioBuffer>> = {}
 let loading: Promise<void> | null = null
@@ -93,13 +95,17 @@ export function loadSamples(): Promise<void> {
   return loading
 }
 
-/** Plays a decoded recording at the current volume. */
-function sample(buffer: AudioBuffer, at: number) {
+/**
+ * Plays a decoded recording at the current volume, scaled by `level`; a `rate` below 1 plays it
+ * slower and lower.
+ */
+function sample(buffer: AudioBuffer, at: number, { rate = 1, level = 1 } = {}) {
   const ctx = context!
   const source = ctx.createBufferSource()
   source.buffer = buffer
+  source.playbackRate.value = rate
   const gain = ctx.createGain()
-  gain.gain.value = soundStore.getState().volume
+  gain.gain.value = soundStore.getState().volume * level
   source.connect(gain).connect(ctx.destination)
   source.start(at)
 }
@@ -182,10 +188,25 @@ export function playKeyUp() {
   })
 }
 
-/** Plays the machine's sounds as keys go down and up, from either view. */
+/** The lid's hinge, opening or closing. Recorded only: silent until the recording has loaded. */
+export function playLidHinge(opening: boolean) {
+  play(opening ? 'lid-open' : 'lid-close', (t) => {
+    const recording = samples['lid-hinge']
+    // Closing plays a little slower: a lower, longer squeak, so the two don't sound identical.
+    if (recording) sample(recording, t, { rate: opening ? 1 : CLOSING_RATE, level: HINGE_LEVEL })
+  })
+}
+
+/** Playback speed of the hinge as the lid closes: about three semitones lower. */
+const CLOSING_RATE = 0.85
+/** The hinge stays in the background: three-quarters of the keys' volume. */
+const HINGE_LEVEL = 0.75
+
+/** Plays the machine's sounds as keys go down and up and the lid opens and closes, from either view. */
 export function startMachineSounds(): () => void {
   void loadSamples()
   return machineStore.subscribe((state, previous) => {
+    if (state.lidOpen !== previous.lidOpen) playLidHinge(state.lidOpen)
     if (state.heldKey && !previous.heldKey && state.lastTrace) {
       playKeyDown(state.lastTrace.stepped.filter(Boolean).length)
     } else if (!state.heldKey && previous.heldKey) {

@@ -103,7 +103,7 @@ for (const view of VIEWS) {
             (window as unknown as { __enigmaSamples: () => string[] }).__enigmaSamples().sort(),
           ),
         )
-        .toEqual(['key-down', 'key-up'])
+        .toEqual(['key-down', 'key-up', 'lid-hinge'])
       await page.keyboard.press('a')
       await expect.poll(() => sounds(page)).toEqual(['key-down', 'ratchet', 'key-up'])
 
@@ -131,6 +131,12 @@ for (const view of VIEWS) {
         'aria-pressed',
         'false',
       )
+    })
+
+    test('the lid creaks on its hinge as it opens, and lower as it closes', async ({ page }) => {
+      await page.getByRole('button', { name: 'Open the lid' }).click()
+      await page.getByRole('button', { name: 'Close the lid' }).click()
+      await expect.poll(() => sounds(page)).toEqual(['lid-open', 'lid-close'])
     })
 
     test('no accessibility violations with a prepared message showing', async ({ page }) => {

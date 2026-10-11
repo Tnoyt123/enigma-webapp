@@ -12,7 +12,7 @@ An educational, historically accurate simulator of the WWII Enigma I, M3 and M4 
 - **Hands-on.** Open the lid to swap rotors with the rotor box (with the drop target outlined), set rings in a close-up, drag thumbwheels and plugboard cables.
 - **Real messages.** Load one of those wartime messages with its key in one click, and decipher it on the machine step by step.
 - **Radio messages.** Send and receive messages with the period's indicator procedures: the 1938–40 doubled indicator, the 1940–45 Army procedure and the Kriegsmarine bigram procedure.
-- **Sound.** Recorded mechanical key clicks and a synthesized ratchet click for each rotor that steps.
+- **Sound.** Recorded mechanical key clicks, a synthesized ratchet click for each rotor that steps, and a creak from the lid's hinge.
 - **Accessible.** Full keyboard and screen-reader support in both views, axe-checked (WCAG 2.1 AA), touch-friendly on phones.
 - **Remembers** the machine setup, view and sound settings on each device.
 
